@@ -53,14 +53,38 @@ def setNumOcorrencies():
 					if s not in invertedList[t]:
 						invertedList[t][s]=fq
 
+def maxTermfq(sentence):
+	max=0
+	for term in invertedList:
+		if sentence in invertedList[term]:
+			if invertedList[term][sentence] > value:
+				max=value
+	return max
+
+def  teste(text):
+	global terms
+	sentences = sent_tokenize(text)
+	print(str(sentences))
+	print("num sentences "+str(len(sentences)))
+	print(" num terms "+ str(len(stringToTerms(text))))
+	
+	vectorizer = TfidfVectorizer( use_idf=False ,smooth_idf=False)
+	ft = vectorizer.fit_transform(sentences)
+	fti = vectorizer.transform(sentences)
+	print(ft)
+	print(vectorizer.get_feature_names())
+
+
 def readfile(filename):
 	global terms,sentences
 	f2=open(filename,"r")
 	text=f2.read().lower()
+	
 	stringToDictOfSentences(text)
-	#print(sentences)
-	for k in invertedList:
-		print(str(k)+": "+str(invertedList[k]))
+	teste(text)
+	print(str(len(terms.keys())))
+	#for k in invertedList:
+	#	print(str(k)+": "+str(invertedList[k]))
 
 readfile("smalltest.txt")
 
