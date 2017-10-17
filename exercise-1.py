@@ -8,6 +8,7 @@ from nltk.tokenize import RegexpTokenizer
 terms=dict()
 sentences =dict()
 invertedList = dict()
+tfIdf = dict()
 
 class TermClass:
 	term=""
@@ -58,11 +59,56 @@ def maxTermfq(sentence):
 	max=0
 	for term in invertedList:
 		if sentence in invertedList[term]:
-			if invertedList[term][sentence] > value:
-				max=value
+			if invertedList[term][sentence] > max:
+				max=invertedList[term][sentence]
 	return max
 
+def idf(term,sentence):
+	global sentences
+	ni=invertedList[term][sentence]
+	n=len(sentences.keys())
+	return math.log10(n/ni)
+
+def setTfIdf():
+	global invertedList,tfIdf
+	#print(str(invertedList))
+	for term in invertedList:
+		for sentence in invertedList[term]:
+			maxi=maxTermfq(sentence)
+			tf=invertedList[term][sentence]
+			if term not in tfIdf:
+				tfIdf[term]=dict()
+			tfIdf[term][sentence]=dict()
+			tfIdf[term][sentence]=(tf/maxi)*idf(term,sentence)
+
+def readfile(filename):
+	global tfIdf
+	f2=open(filename,"r")
+	text=f2.read().lower()
+	stringToDictOfSentences(text)
+	setTfIdf()
+	print(str(tfIdf))
+	#teste(text)
+	#for k in invertedList:
+	#	print(str(k)+": "+str(invertedList[k]))
+
+readfile("smalltest.txt")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def  teste(text):
+	#tf-idf com sklearn
 	sentences = sent_tokenize(text)
 	print(str(sentences))
 	print("num sentences "+str(len(sentences)))
@@ -70,17 +116,4 @@ def  teste(text):
 	ft = vectorizer.fit_transform(sentences)
 	print(ft)
 	print(vectorizer.get_feature_names())
-
-
-def readfile(filename):
-	global terms,sentences
-	f2=open(filename,"r")
-	text=f2.read().lower()
-	
-	stringToDictOfSentences(text)
-	teste(text)
-	#for k in invertedList:
-	#	print(str(k)+": "+str(invertedList[k]))
-
-readfile("smalltest.txt")
 
