@@ -1,6 +1,7 @@
 import re
 import math
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize import RegexpTokenizer
@@ -62,15 +63,11 @@ def maxTermfq(sentence):
 	return max
 
 def  teste(text):
-	global terms
 	sentences = sent_tokenize(text)
 	print(str(sentences))
 	print("num sentences "+str(len(sentences)))
-	print(" num terms "+ str(len(stringToTerms(text))))
-	
-	vectorizer = TfidfVectorizer( use_idf=False ,smooth_idf=False)
+	vectorizer = TfidfVectorizer( use_idf=False)
 	ft = vectorizer.fit_transform(sentences)
-	fti = vectorizer.transform(sentences)
 	print(ft)
 	print(vectorizer.get_feature_names())
 
@@ -82,7 +79,6 @@ def readfile(filename):
 	
 	stringToDictOfSentences(text)
 	teste(text)
-	print(str(len(terms.keys())))
 	#for k in invertedList:
 	#	print(str(k)+": "+str(invertedList[k]))
 
