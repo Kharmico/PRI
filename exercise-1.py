@@ -1,16 +1,22 @@
 import re
 import math
+import operator
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize import RegexpTokenizer
+
 terms=dict()
-sentences =dict()
+sentences =dict() #chave e id da sentence valor e um array de termos
 invertedList = dict()# chave e' a palavra e o valor e' outro dicionario em qe a chave 
 					#e' a sentence e o valor e' a frequencia (dicionario de dicionarios)
-tfIdf = dict()
+ts_tfIdf = dict() #chave e termo, a segunda chave e sentence e o valor e o tf-idf do termo na frase
+st_tfIdf=dict() #chave e sentence, a segunda chave e termo e o valor 
+				#e tf-idf do termo an frase os dois dicionarios sao iguais
+original_sentences=dict() # frazes originais.
 
+#TODO: guardar a frase original
 class TermClass:
 	term=""
 	isf=None
@@ -30,13 +36,14 @@ def stringToTerms(text):
 	return tokenizer.tokenize(text) # todas as palavras do texto 
 
 def stringToDictOfSentences(text):
-	global terms,sentences,invertedList
+	global terms,sentences,invertedList,original_sentences
 	aux_sentences = sent_tokenize(text)
 	i=1
 	global sentences
 	for line in aux_sentences:
 		aux_terms=stringToTerms(line)
 		sentences[i] = aux_terms
+		original_sentences[i]=line
 		for t in aux_terms:
 			obj= TermClass()
 			obj.term=t
@@ -45,8 +52,7 @@ def stringToDictOfSentences(text):
 				invertedList[t]=dict()
 		i+=1
 		setNumOcorrencies()
-		
-		
+			
 def setNumOcorrencies():
 	for t in terms:
 			for s in sentences:
@@ -64,29 +70,120 @@ def maxTermfq(sentence):
 				max=invertedList[term][sentence]
 	return max
 
-def idf(term,sentence):
+def idf(term):
 	global sentences
 	ni=len(invertedList[term].keys())
 	n=len(sentences.keys())
 	return math.log10(n/ni)
 
 def setTfIdf():
-	global invertedList,tfIdf
+	global invertedList,ts_tfIdf, st_tfIdf
 	for term in invertedList:
+
 		for sentence in invertedList[term]:
 			maxi=maxTermfq(sentence)
 			tf=invertedList[term][sentence]
-			if term not in tfIdf:
-				tfIdf[term]=dict()
-			tfIdf[term][sentence]=dict() 
-			tfIdf[term][sentence]=(tf/maxi)*idf(term,sentence)
+			if term not in ts_tfIdf:
+				ts_tfIdf[term]=dict()
+			if sentence not in st_tfIdf:
+				st_tfIdf[sentence]=dict()
+			if term not in st_tfIdf:
+				st_tfIdf[sentence][term]=dict()
+
+			ts_tfIdf[term][sentence]=dict()
+			value=0
+			value=(tf/maxi)*idf(term)
+			ts_tfIdf[term][sentence]=value
+			st_tfIdf[sentence][term]=value
+
+def sqrtSomeSquares(sentence):
+	#untested
+	value=0
+	aux=dict()
+	aux={k: v*v for k, v in st_tfIdf[sentence].items()}
+	#print(str(aux))
+	value=sum(aux.values())
+	return math.sqrt(value)
+
+
+def calcpesoTermoDoc():
+	global terms
+	pesosDoc= dict()
+	maxTf=getFqMaxDoc()
+	for term in terms:
+		pesosDoc[term]=((getFqTermDoc(term)/maxTf) * idf(term))
+	return pesosDoc
+
+def sumMultiPesos(sentence,pesosDoc):
+	global st_tfIdf,sentences
+	value=0
+	maxTf=getFqMaxDoc()# Tf maximo dos termos no documento
+	for term in sentences[sentence]:
+		value+=(st_tfIdf[sentence][term] * pesosDoc[term])
+	return value
+
+def sqrtSomeSquaresDoc(pesosDoc):
+	value=0
+	aux=dict()
+	aux={k: v*v for k, v in pesosDoc.items()}
+	value=sum(aux.values())
+	return math.sqrt(value)
+
+def calculateScoreOfsentences():
+	global sentences
+	pesosDoc=dict()
+	pesosDoc=calcpesoTermoDoc()
+	sentences_scores=dict()
+	for sentence in sentences:
+		sqrt_some_squares=sqrtSomeSquares(sentence)
+		soma_mult_pesos=sumMultiPesos(sentence,pesosDoc)
+		sqrt_some_squares_doc=sqrtSomeSquaresDoc(pesosDoc)
+		sentences_scores[sentence]=(soma_mult_pesos)/(sqrt_some_squares*sqrt_some_squares_doc)
+	return sentences_scores
+
+def getFqMaxDoc():
+	value=0
+	global invertedList
+	for term in invertedList:
+		aux=0
+		for sentence in invertedList[term]:
+			aux+= invertedList[term][sentence]
+		if aux > value:
+			value=aux
+	return value
+def getFqTermDoc(term):
+	value=0
+	global invertedList
+	if term in invertedList:
+		for sentence in invertedList[term]:
+			value+= invertedList[term][sentence]
+	return value
+
+def getResume():
+	sentences_scores=dict()
+	sentences_scores=calculateScoreOfsentences()
+	tree_best=[]
+	#calcular os trees melhores
+	for x in range(0,3):
+		maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
+		tree_best.append(maxSent)
+		del sentences_scores[maxSent]
+	tree_best.sort()
+	return tree_best
+
+def printBest(tree_best):
+	global original_sentences
+	for i in tree_best:
+		print(original_sentences[i])
+
+
 
 def readfile(filename):
-	global tfIdf
+	global ts_tfIdf
 	f2=open(filename,"r")
 	text=f2.read().lower()
 	stringToDictOfSentences(text)
 	setTfIdf()
-	print(str(tfIdf))
+	printBest(getResume())
 
 readfile("smalltest.txt")
