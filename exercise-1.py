@@ -7,7 +7,8 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize import RegexpTokenizer
 terms=dict()
 sentences =dict()
-invertedList = dict()
+invertedList = dict()# chave e' a palavra e o valor e' outro dicionario em qe a chave 
+					#e' a sentence e o valor e' a frequencia (dicionario de dicionarios)
 tfIdf = dict()
 
 class TermClass:
@@ -16,12 +17,12 @@ class TermClass:
 	sf=None
 	maxTf=None
 	minTf=None
-	def __eq__(self, other):
-		if isinstance(other, SimilarityPair):
+	def __eq__(self, other):# equivalente a equals
+		if isinstance(other, TermClass):
 			return ((self.term == other.term))
 		else:
 			return False
-	def __str__(self):
+	def __str__(self):# equivalente a to string
 		return self.term
 
 def stringToTerms(text):
@@ -61,6 +62,7 @@ def maxTermfq(sentence):
 		if sentence in invertedList[term]:
 			if invertedList[term][sentence] > max:
 				max=invertedList[term][sentence]
+	print("frazse "+str(sentence) +" max "+ str(max))
 	return max
 
 def idf(term,sentence):
