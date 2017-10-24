@@ -4,6 +4,7 @@ import operator
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
+from nltk import tokenize
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize import RegexpTokenizer
 
@@ -37,7 +38,7 @@ def stringToTerms(text):
 
 def stringToDictOfSentences(text):
 	global terms,sentences,invertedList,original_sentences
-	aux_sentences = sent_tokenize(text)
+	aux_sentences = tokenize.sent_tokenize(text, language='english')
 	i=1
 	global sentences
 	for line in aux_sentences:
@@ -95,6 +96,7 @@ def setTfIdf():
 			value=(tf/maxi)*idf(term)
 			ts_tfIdf[term][sentence]=value
 			st_tfIdf[sentence][term]=value
+	#print(str(st_tfIdf))
 
 def sqrtSomeSquares(sentence):
 	#untested
@@ -115,11 +117,11 @@ def calcpesoTermoDoc():
 	return pesosDoc
 
 def sumMultiPesos(sentence,pesosDoc):
-	global st_tfIdf,sentences
+	global st_tfIdf
 	value=0
-	maxTf=getFqMaxDoc()# Tf maximo dos termos no documento
-	for term in sentences[sentence]:
+	for term in st_tfIdf[sentence]:
 		value+=(st_tfIdf[sentence][term] * pesosDoc[term])
+		#print("sumMultiPesos "+ str(sentence)+" "+term+" "+str(value))
 	return value
 
 def sqrtSomeSquaresDoc(pesosDoc):
@@ -138,6 +140,8 @@ def calculateScoreOfsentences():
 		sqrt_some_squares=sqrtSomeSquares(sentence)
 		soma_mult_pesos=sumMultiPesos(sentence,pesosDoc)
 		sqrt_some_squares_doc=sqrtSomeSquaresDoc(pesosDoc)
+		#print("metricas "+str(sentence))
+		#print(str(sqrt_some_squares)+" "+str(soma_mult_pesos)+" "+str(sqrt_some_squares_doc))
 		sentences_scores[sentence]=(soma_mult_pesos)/(sqrt_some_squares*sqrt_some_squares_doc)
 	return sentences_scores
 
@@ -162,6 +166,8 @@ def getFqTermDoc(term):
 def getResume():
 	sentences_scores=dict()
 	sentences_scores=calculateScoreOfsentences()
+	#print("scores:")
+	#print(str(sentences_scores))
 	tree_best=[]
 	#calcular os trees melhores
 	for x in range(0,3):
