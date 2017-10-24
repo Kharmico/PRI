@@ -12,10 +12,12 @@ from nltk.tokenize import RegexpTokenizer
 
 
 terms = dict()
-invertedList = dict()
+invertedList = dict()#term-doc-sentence
+invertedListDoc=dict()#doc-term-sentence
 #docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
 docs= ['smalltest.txt']
 scores=dict() #key=doc value = sentence and respective score
+tfIdf=dict() #doc-sentence-term
 
 PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES='./ManualSummaries/'
@@ -49,25 +51,33 @@ def DocToSentences(text):
 	return frases_tokenize
 
 def setInvertedList(docs):
-	global terms,invertedList
+	global terms,invertedList,invertedListDoc
 	#para cada doc
 	for doc in docs:
 		#f2 = open(PATH_SOURCE_TEXT+doc, "r")
-		print("doc "+doc)
 		f2 = open(doc, "r")
 		text = f2.read().lower()
 		sentences = DocToSentences(text)
-		
+		invertedListDoc[doc]=dict()
+		sentence_counter=1
 		for sentence in sentences:
 			aux_terms=stringToTerms(sentence)
 			for t in aux_terms:
 				obj= TermClass()
 				obj.term=t
+				if t not in invertedListDoc[doc]:
+					invertedListDoc[doc][t]=dict()
+				if sentence_counter not in invertedListDoc[doc][t]:
+					invertedListDoc[doc][t][sentence_counter]=0
+				invertedListDoc[doc][t][sentence_counter]+=1
 				if t not in terms:
 					terms[t]=obj
 					invertedList[t]=dict()
 				if doc not in invertedList[t]:
 					invertedList[t][doc]=dict()
+			sentence_counter+=1
+	print("inverted list DOC:----------------------------------")
+	print(str(invertedListDoc))
 	populateInvertedList(docs)
 
 def populateInvertedList(docs):
@@ -83,11 +93,12 @@ def populateInvertedList(docs):
 			for t in terms:
 				invertedList[t][doc][sentence_counter]=terms.count(t)
 			sentence_counter+=1
+	print("inverted list:")
 	print(str(invertedList))
 
 	#////////////////////////////////
 def maxTermfq(doc,sentence):
-	#TODO:
+	global invertedListDoc
 	max=0
 	for term in invertedList:
 		if doc in invertedList[term]:
@@ -97,7 +108,6 @@ def maxTermfq(doc,sentence):
 	return max
 
 def idf(doc,term):
-	#TODO:
 	ni=len(invertedList[term][doc].keys())
 	#f2 = open(PATH_SOURCE_TEXT+doc, "r")
 	f2 = open(doc, "r")
@@ -106,10 +116,8 @@ def idf(doc,term):
 	n=len(sentences)
 	return math.log10(n/ni)
 
-def setTfIdf(doc):
-	#TODO:
-	global invertedList
-	tfIdf=dict()
+def setTfIdf():
+	global invertedList,tfIdf
 	for term in invertedList:
 		for doc in invertedList[term]:
 			for sentence in invertedList[term][doc]:
@@ -126,47 +134,80 @@ def setTfIdf(doc):
 					tfIdf[doc][sentence][term]=dict()
 
 				tfIdf[doc][sentence][term]=value
-	print(str(tfIdf))
 
 def sqrtSomeSquares(doc,sentence):
 	#TODO:
+	global tfIdf
+	value=0
+	aux=dict()
+	aux={k: v*v for k, v in tfIdf[doc][sentence].items()}
+	value=sum(aux.values())
 	return math.sqrt(value)
 
 
-#def calcpesoTermoDoc(doc):
+def calcpesoTermoDoc(doc):
 	#TODO:
-	#pesosDoc[term]=((getFqTermDoc(term)/maxTf) * idf(term))
-	#return pesosDoc
+	global tfIdf
+	pesosDoc= dict()
+	maxTf=getFqMaxDoc(doc)
+	for term in tfIdf[doc][sentence]:
+		pesosDoc[term]=((getFqTermDoc(term,doc)/maxTf) * idf(term,doc))
+	return pesosDoc
 
-#def sumMultiPesos(sentence,pesosDoc):
+def sumMultiPesos(doc,sentence,pesosDoc):
 	#TODO:
+	global tfIdf
+	value=0
+	maxTf=getFqMaxDoc(doc)# Tf maximo dos termos no documento
+	for term in tfIdf[doc][sentence]:
+		value+=(tfIdf[doc][sentence][term] * pesosDoc[term])
+	return value
 
-#def sqrtSomeSquaresDoc(pesosDoc):
-	#value=0
-	#TODO:
-	#return math.sqrt(value)
+def sqrtSomeSquaresDoc(pesosDoc):
+	value=0
+	aux=dict()
+	aux={k: v*v for k, v in pesosDoc.items()}
+	value=sum(aux.values())
+	return math.sqrt(value)
 
-#def calculateScoreOfsentences():
+def calculateScoreOfsentences(doc):
 	#TODO:
-
-#def getFqMaxDoc():
-	#TODO:
+	pesosDoc=dict()
+	pesosDoc=calcpesoTermoDoc(doc)
 	
-#def getFqTermDoc(term):
-	#TODO
-
-#def getResume(doc):
-	#TODO
-	
-
-#def printBest(tree_best):
-	#TODO
-	
+	sentences_scores[doc]=dict()
+	for sentence in sentences:
+		sqrt_some_squares=sqrtSomeSquares(sentence)
+		soma_mult_pesos=sumMultiPesos(doc,sentence,pesosDoc)
+		sqrt_some_squares_doc=sqrtSomeSquaresDoc(pesosDoc)
+		sentences_scores[doc][sentence]=(soma_mult_pesos)/(sqrt_some_squares*sqrt_some_squares_doc)
+	return sentences_scores[doc]
+# fq do termo que se repete mais vezes no doc
+def getFqMaxDoc(doc):
+	global invertedListDoc
+	value=0
+	for term in invertedListDoc[doc]:
+		aux=0
+		for sentence in invertedListDoc[doc][term]:
+			aux+= invertedList[doc][term][sentence]
+		if aux > value:
+			value=aux
+	return value
+#fq do termo que se repete mais vezes no doc
+def getFqTermDoc(doc,term):
+	value=0
+	global invertedListDoc
+	if term in invertedListDoc[doc]:
+		for sentence in invertedListDoc[doc][term]:
+			value+= invertedList[doc][term][sentence]
+	return value	
 	#////////////////////////////////////
 def resumeEx1(docs):
+	setTfIdf()
+	scoresDocs=dict()
 	for doc in docs:
-		setTfIdf(doc)
-
+		scoresDocs[doc]=calculateScoreOfsentences(doc)
+	
 def main():
 	global docs
 	setInvertedList(docs)
