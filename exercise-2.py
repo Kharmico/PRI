@@ -24,7 +24,8 @@ PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES='./ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
 
-docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
+#docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
+docs= ['smalltest.txt']
 
 class TermClass:
     term = ""
@@ -53,12 +54,13 @@ def DocToSentences(text):
 def setInvertedList(docs):
 	global terms,invertedList
 	#para cada doc
-	doc_counter=1
-	senteces_counter=1
 	for doc in docs:
-		f2 = open(PATH_SOURCE_TEXT+doc, "r")
+		#f2 = open(PATH_SOURCE_TEXT+doc, "r")
+		print("doc "+doc)
+		f2 = open(doc, "r")
 		text = f2.read().lower()
 		sentences = DocToSentences(text)
+		
 		for sentence in sentences:
 			aux_terms=stringToTerms(sentence)
 			for t in aux_terms:
@@ -67,6 +69,26 @@ def setInvertedList(docs):
 				if t not in terms:
 					terms[t]=obj
 					invertedList[t]=dict()
+				if doc not in invertedList[t]:
+					invertedList[t][doc]=dict()
+	populateInvertedList(docs)
+
+def populateInvertedList(docs):
+	global invertedList
+	for doc in docs:
+		#f2 = open(PATH_SOURCE_TEXT+doc, "r")
+		f2 = open(doc, "r")
+		text = f2.read().lower()
+		sentences = DocToSentences(text)
+		sentence_counter=1		
+		for sentence in sentences:
+			terms=stringToTerms(sentence)
+			for t in terms:
+				invertedList[t][doc][sentence_counter]=sentence.count(t)
+			sentence_counter+=1
+	print(str(invertedList))
+
+				
 
 
 # #def readfile(filename):
