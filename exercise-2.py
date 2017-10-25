@@ -243,18 +243,21 @@ def getResume(sentences_scores):
 	return tree_best
 	#////////////////////////////////////
 
-def printSentences(doc,idexs):
+def printResume(resumesDocs):
+	for doc in resumesDocs.keys():
+		print("resume doc: "+doc)
+		for sentence in resumesDocs[doc]:
+			print(sentence)
+
+def getOriginalSentence(doc,idexs):
 	f2 = open(PATH_SOURCE_TEXT+doc, "r")
 	#f2 = open(doc, "r")
 	text = f2.read()
 	sentences = DocToSentences(text)
+	aux=[]
 	for i in idexs:
-		print (sentences[i])
-
-def printResume(resumesDocs):
-	for doc in resumesDocs.keys():
-		print("resume doc: "+doc)
-		printSentences(doc,resumesDocs[doc])
+		aux.append(sentences[i])
+	return aux
 
 def resumeEx(docs, bool):
 	tfIdf1=dict()
@@ -264,7 +267,7 @@ def resumeEx(docs, bool):
 	print("resume bool")
 	for doc in docs:
 		scoresDocs[doc]=calculateScoreOfsentences(doc,tfIdf1,bool)
-		resumesDocs[doc]=getResume(scoresDocs[doc])
+		resumesDocs[doc]=getOriginalSentence(doc,getResume(scoresDocs[doc]))
 	printResume(resumesDocs)
 	return resumesDocs
 	
@@ -293,12 +296,7 @@ def intersectCalc(resume, extracted):
 
 	for doc in resume:
 		print(doc)
-		for sent in extracted[doc]:
-			print(sent)
-			print(resume[doc])
-			if sent in resume[doc]:
-				counter += 1
-		#counter += len(set(resume[doc]).intersection(extracted[doc]))
+		counter += len(set(resume[doc]).intersection(extracted[doc]))
 	return counter
 
 def precision(intersection, a):
@@ -323,8 +321,12 @@ def main():
 	intersection = intersectCalc(resume1, extracted)
 	prec = precision(intersection, a)
 	rec = recall(intersection)
+	f1 = (2*rec*prec)/(rec+prec)
 	print("Precision: " + str(prec))
 	print("Recall : " + str(rec))
+	print("F1 : " + str(f1))
+
+	
 
 
 main()
