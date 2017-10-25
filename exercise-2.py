@@ -14,11 +14,14 @@ from nltk.tokenize import RegexpTokenizer
 PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES='./ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
+RESUME_LEN = 3
 
+sentInExtResumes = 0
 terms = dict()
 invertedList = dict()#term-doc-sentence
 invertedListDoc=dict()#doc-term-sentence
 docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
+resumes=[f for f in os.listdir(PATH_AUTO_IDEAL_EXTRACTIVES)]
 #docs= ['smalltest.txt']
 scores=dict() #key=doc-sentence - respective score
 #tfIdf=dict() #doc-sentence-term
@@ -31,9 +34,6 @@ tfIdf2=dict() #doc-sentence-term
 num_frases=0
 num_frases_termo=dict() # key= termo, 
 						#value = numero de fazes na colecao inteira em que o termo aparece
-
-
-
 
 class TermClass:
     term = ""
@@ -235,7 +235,7 @@ def getFqTermDoc(term,doc):
 def getResume(sentences_scores):
 	tree_best=[]
 	#calcular os trees melhores
-	for x in range(0,3):
+	for x in range(0,RESUME_LEN):
 		maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
 		tree_best.append(maxSent)
 		del sentences_scores[maxSent]
@@ -256,36 +256,75 @@ def printResume(resumesDocs):
 		print("resume doc: "+doc)
 		printSentences(doc,resumesDocs[doc])
 
-def resumeEx1(docs):
+def resumeEx(docs, bool):
 	tfIdf1=dict()
-	tfIdf1=setTfIdf(True)
+	tfIdf1=setTfIdf(bool)
 	scoresDocs=dict()
 	resumesDocs=dict()
-	print("resume 1")
+	print("resume bool")
 	for doc in docs:
-		scoresDocs[doc]=calculateScoreOfsentences(doc,tfIdf1,True)
+		scoresDocs[doc]=calculateScoreOfsentences(doc,tfIdf1,bool)
 		resumesDocs[doc]=getResume(scoresDocs[doc])
 	printResume(resumesDocs)
+	return resumesDocs
+	
+# Save the Extracted resumes
+def saveResumes():
+	global resumes, sentInExtResumes
+	extracted = dict()
 
-def resumeEx2(docs):
-	tfIdf2=dict()
-	tfIdf2=setTfIdf(False)
-	
-	scoresDocs=dict()
-	resumesDocs=dict()
-	print("resume 2")
-	for doc in docs:
-		scoresDocs[doc]=calculateScoreOfsentences(doc,tfIdf2,False)
-		resumesDocs[doc]=getResume(scoresDocs[doc])
-	printResume(resumesDocs)
-	
+	for doc in resumes:
+		file = open(PATH_AUTO_IDEAL_EXTRACTIVES + doc).read()
+		sentences = DocToSentences(file)
+		docSeparate = doc.split("-")
+		docToSave = docSeparate[1] + "-" + docSeparate[2]
+		#print("Doc To Save: " + docToSave)
+		extracted[docToSave] = sentences
+		sentInExtResumes += len(sentences)
+	return extracted
+
+# Length (nº of sentences) of our own set
+def calcA():
+	global docs
+	return (len(docs)*RESUME_LEN)
+
+def intersectCalc(resume, extracted):
+	counter = 0
+
+	for doc in resume:
+		print(doc)
+		for sent in extracted[doc]:
+			print(sent)
+			print(resume[doc])
+			if sent in resume[doc]:
+				counter += 1
+		#counter += len(set(resume[doc]).intersection(extracted[doc]))
+	return counter
+
+def precision(intersection, a):
+	print("Intersection: " + str(intersection) + " and A: " + str(a))
+	return (intersection/a)
+
+def recall(intersection):
+	global sentInExtResumes
+	print("Intersection: " + str(intersection) + " and sentInExtResumes: " + str(sentInExtResumes))
+	return (intersection/sentInExtResumes)
+
 def main():
 	global docs
+	resume1=dict()
+	resume2=dict()
+	a=0
 	setInvertedList(docs)
-	resumeEx1(docs)
-	resumeEx2(docs)
-	
-    
+	resume1=resumeEx(docs, True)
+	resume2=resumeEx(docs, False)
+	a=calcA()
+	extracted = saveResumes()
+	intersection = intersectCalc(resume1, extracted)
+	prec = precision(intersection, a)
+	rec = recall(intersection)
+	print("Precision: " + str(prec))
+	print("Recall : " + str(rec))
 
 
 main()
