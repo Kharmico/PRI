@@ -11,19 +11,20 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.tokenize import RegexpTokenizer
 
 
+PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
+PATH_MANUAL_SUMMARIES='./ManualSummaries/'
+PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
+
 terms = dict()
 invertedList = dict()#term-doc-sentence
 invertedListDoc=dict()#doc-term-sentence
-#docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
-docs= ['smalltest.txt']
+docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
+#docs= ['smalltest.txt']
 scores=dict() #key=doc-sentence - respective score
 tfIdf=dict() #doc-sentence-term
 				#dada a extrutura, do 
 				#dicionario as vezes este e usado para iterar as frases de um texto
 
-PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
-PATH_MANUAL_SUMMARIES='./ManualSummaries/'
-PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
 
 
 
@@ -56,8 +57,8 @@ def setInvertedList(docs):
 	global terms,invertedList,invertedListDoc
 	#para cada doc
 	for doc in docs:
-		#f2 = open(PATH_SOURCE_TEXT+doc, "r")
-		f2 = open(doc, "r")
+		f2 = open(PATH_SOURCE_TEXT+doc, "r")
+		#f2 = open(doc, "r")
 		text = f2.read().lower()
 		sentences = DocToSentences(text)
 		invertedListDoc[doc]=dict()
@@ -85,8 +86,8 @@ def setInvertedList(docs):
 def populateInvertedList(docs):
 	global invertedList
 	for doc in docs:
-		#f2 = open(PATH_SOURCE_TEXT+doc, "r")
-		f2 = open(doc, "r")
+		f2 = open(PATH_SOURCE_TEXT+doc, "r")
+		#f2 = open(doc, "r")
 		text = f2.read().lower()
 		sentences = DocToSentences(text)
 		sentence_counter=1		
@@ -111,8 +112,8 @@ def maxTermfq(doc,sentence):
 
 def idf(term,doc):
 	ni=len(invertedList[term][doc].keys())
-	#f2 = open(PATH_SOURCE_TEXT+doc, "r")
-	f2 = open(doc, "r")
+	f2 = open(PATH_SOURCE_TEXT+doc, "r")
+	#f2 = open(doc, "r")
 	text = f2.read().lower()
 	sentences = DocToSentences(text)
 	n=len(sentences)
@@ -210,14 +211,39 @@ def getFqTermDoc(term,doc):
 		for sentence in invertedListDoc[doc][term]:
 			value+= invertedListDoc[doc][term][sentence]
 	return value	
+
+def getResume(sentences_scores):
+	tree_best=[]
+	#calcular os trees melhores
+	for x in range(0,5):
+		maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
+		tree_best.append(maxSent)
+		del sentences_scores[maxSent]
+	tree_best.sort()
+	return tree_best
 	#////////////////////////////////////
+def printSentences(doc,idexs):
+	f2 = open(PATH_SOURCE_TEXT+doc, "r")
+	#f2 = open(doc, "r")
+	text = f2.read().lower()
+	sentences = DocToSentences(text)
+	for i in idexs:
+		print (sentences[i])
+
+def printResume(resumesDocs):
+	for doc in resumesDocs.keys():
+		print("resume doc: "+doc)
+		printSentences(doc,resumesDocs[doc])
+		print()
+
 def resumeEx1(docs):
 	setTfIdf()
 	scoresDocs=dict()
+	resumesDocs=dict()
 	for doc in docs:
 		scoresDocs[doc]=calculateScoreOfsentences(doc)
-		print("scoresDocs[doc] ")
-		print(scoresDocs[doc])
+		resumesDocs[doc]=getResume(scoresDocs[doc])
+	printResume(resumesDocs)
 	
 def main():
 	global docs
