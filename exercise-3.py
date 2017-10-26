@@ -23,3 +23,5 @@ import os, nltk, string, itertools
     # This is the right way to go, bigrams and trigrams will not consider inter-phrase tokens   
     candidates = [' '.join(word for word, pos, chunk in group).lower()
                       for key, group in itertools.groupby(all_chunks, lambda (word,pos,chunk): chunk != 'O') if key]
+
+#////////////////////////////////////////////////////////////////////////7
