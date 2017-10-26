@@ -254,9 +254,11 @@ def getOriginalSentence(doc,idexs):
 	#f2 = open(doc, "r")
 	text = f2.read()
 	sentences = DocToSentences(text)
+	print("doc: "+doc+ " tem "+str(len(sentences)))
 	aux=[]
 	for i in idexs:
-		aux.append(sentences[i])
+		print("This is the value of i: " + str(i-1))
+		aux.append(sentences[i-1])
 	return aux
 
 def resumeEx(docs, bool):
