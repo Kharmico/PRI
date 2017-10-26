@@ -243,21 +243,21 @@ def getResume(sentences_scores):
 	return tree_best
 	#////////////////////////////////////
 
-def printResume(resumesDocs):
-	for doc in resumesDocs.keys():
-		print("resume doc: "+doc)
-		for sentence in resumesDocs[doc]:
-			print(sentence)
+#def printResume(resumesDocs):
+#	for doc in resumesDocs.keys():
+#		print("resume doc: "+doc)
+#		for sentence in resumesDocs[doc]:
+#			print(sentence)
 
 def getOriginalSentence(doc,idexs):
 	f2 = open(PATH_SOURCE_TEXT+doc, "r")
 	#f2 = open(doc, "r")
 	text = f2.read()
 	sentences = DocToSentences(text)
-	print("doc: "+doc+ " tem "+str(len(sentences)))
+	#print("doc: "+doc+ " tem "+str(len(sentences)))
 	aux=[]
 	for i in idexs:
-		print("This is the value of i: " + str(i-1))
+	#	print("This is the value of i: " + str(i-1))
 		aux.append(sentences[i-1])
 	return aux
 
@@ -266,11 +266,11 @@ def resumeEx(docs, bool):
 	tfIdf1=setTfIdf(bool)
 	scoresDocs=dict()
 	resumesDocs=dict()
-	print("resume bool")
+	#print("resume bool")
 	for doc in docs:
 		scoresDocs[doc]=calculateScoreOfsentences(doc,tfIdf1,bool)
 		resumesDocs[doc]=getOriginalSentence(doc,getResume(scoresDocs[doc]))
-	printResume(resumesDocs)
+	#printResume(resumesDocs)
 	return resumesDocs
 	
 # Save the Extracted resumes
@@ -297,7 +297,7 @@ def intersectCalc(resume, extracted):
 	counter = 0
 
 	for doc in resume:
-		print(doc)
+		#print(doc)
 		counter += len(set(resume[doc]).intersection(extracted[doc]))
 	return counter
 
@@ -310,6 +310,32 @@ def recall(intersection):
 	print("Intersection: " + str(intersection) + " and sentInExtResumes: " + str(sentInExtResumes))
 	return (intersection/sentInExtResumes)
 
+def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
+	iteration = 1
+	recall_i = 0
+	num_relevant_sentences = 0
+	avg_precision = 0
+
+	for sentence in our_ResumeSents:
+		if sentence in ideal_ResumeSents:
+			recall_i = 1
+		else:
+			recall_i = 0
+		if sentence in ideal_ResumeSents:
+			num_relevant_sentences += 1
+		precision_i = num_relevant_sentences/iteration
+		avg_precision += (precision_i*recall_i)
+		iteration += 1
+	return avg_precision
+
+def calc_MAP(our_Resume, ideal_Resume):
+	mean_avg_precision = 0
+	for doc in docs:
+		mean_avg_precision += calc_avg_doc(our_Resume[doc], ideal_Resume[doc])
+
+	mean_avg_precision = mean_avg_precision/len(our_Resume.keys())
+	return mean_avg_precision
+
 def main():
 	global docs
 	resume1=dict()
@@ -320,16 +346,28 @@ def main():
 	resume2=resumeEx(docs, False)
 	a=calcA()
 	extracted = saveResumes()
+
 	intersection = intersectCalc(resume1, extracted)
 	prec = precision(intersection, a)
 	rec = recall(intersection)
 	f1 = (2*rec*prec)/(rec+prec)
+	map1 = calc_MAP(resume1,extracted)
+
+	intersection2 = intersectCalc(resume2, extracted)
+	prec2 = precision(intersection2, a)
+	rec2 = recall(intersection2)
+	f12 = (2 * rec2 * prec2) / (rec2 + prec2)
+	map2 = calc_MAP(resume2, extracted)
+	print("--- Metrics for 1st Exercise Approach")
 	print("Precision: " + str(prec))
 	print("Recall : " + str(rec))
 	print("F1 : " + str(f1))
-
-	
-
+	print("MAP : " + str(map1))
+	print("--- Metrics for 2nd Exercise Simple Approach")
+	print("Precision: " + str(prec2))
+	print("Recall : " + str(rec2))
+	print("F1 : " + str(f12))
+	print("MAP : " + str(map2))
 
 main()
 
