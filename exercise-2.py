@@ -326,6 +326,7 @@ def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
 		precision_i = num_relevant_sentences/iteration
 		avg_precision += (precision_i*recall_i)
 		iteration += 1
+	avg_precision=avg_precision/ideal_ResumeSents
 	return avg_precision
 
 def calc_MAP(our_Resume, ideal_Resume):
