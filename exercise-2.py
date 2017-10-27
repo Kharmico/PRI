@@ -315,13 +315,6 @@ def calc_MAP(our_Resume, ideal_Resume):
 	mean_avg_precision = mean_avg_precision/len(our_Resume.keys())
 	return mean_avg_precision
 
-def precison(intersection,a):
-	return len(intersection)/a
-
-def recall(intersection,extracted):
-	return len(intersection)/len(extracted)
-
-
 def main():
 	global docs
 	resume1=dict()
@@ -332,35 +325,31 @@ def main():
 	extracted = saveResumes()
 	prec1 = 0
 	rec1 = 0
-	f11=0
 	mean_avg_precision1=0
 	prec2 = 0
 	rec2 = 0
-	f12=0
 	mean_avg_precision2=0
 
 	num_docs=len(docs)
 	for doc in docs:
 		intersection1=set(resume1[doc]).intersection(extracted[doc])
 		prec1 += len(intersection1)/len(resume1[doc])
-		rec1 += recall(intersection1,extracted[doc])
-		f11 += (2*rec1*prec1)/(rec1+prec1)
+		rec1 += len(intersection1)/len(extracted[doc])
 		mean_avg_precision1 += calc_avg_doc(resume1[doc], extracted[doc])
 		#////////////////for 2////////////
 		intersection2=set(resume2[doc]).intersection(extracted[doc])
 		prec2 += len(intersection2)/len(resume2[doc])
-		rec2 += recall(intersection2,extracted[doc])
-		f12 += (2*rec2*prec2)/(rec2+prec2)
+		rec2 += len(intersection2)/len(extracted[doc])
 		mean_avg_precision2 += calc_avg_doc(resume2[doc], extracted[doc])
 		
 	prec1=prec1/num_docs
 	rec1=rec1/num_docs
-	f11=f11/num_docs
+	_f11=(2*rec1*prec1)/(rec1+prec1)
 	mean_avg_precision1 = mean_avg_precision1/num_docs
 
 	prec2=prec2/num_docs
 	rec2=rec2/num_docs
-	f12=f12/num_docs
+	_f12=(2*rec2*prec2)/(rec2+prec2)
 	mean_avg_precision2 = mean_avg_precision2/num_docs
 	
 	
@@ -368,12 +357,12 @@ def main():
 	print("--- Metrics for 1st Exercise Approach")
 	print("Precision: " + str(prec1))
 	print("Recall : " + str(rec1))
-	print("F1 : " + str(f11))
+	print("F1 : " + str(_f11))
 	print("MAP : " + str(mean_avg_precision1))
 	print("--- Metrics for 2nd Exercise Simple Approach")
 	print("Precision: " + str(prec2))
 	print("Recall : " + str(rec2))
-	print("F1 : " + str(f12))
+	print("F1 : " + str(_f12))
 	print("MAP : " + str(mean_avg_precision2))
 
 main()
