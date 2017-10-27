@@ -14,7 +14,7 @@ from nltk.tokenize import RegexpTokenizer
 PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES='./ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
-RESUME_LEN = 3
+RESUME_LEN = 5
 
 sentInExtResumes = 0
 terms = dict()
@@ -293,23 +293,6 @@ def calcA():
 	global docs
 	return (len(docs)*RESUME_LEN)
 
-def intersectCalc(resume, extracted):
-	counter = 0
-
-	for doc in resume:
-		#print(doc)
-		counter += len(set(resume[doc]).intersection(extracted[doc]))
-	return counter
-
-def precision(intersection, a):
-	print("Intersection: " + str(intersection) + " and A: " + str(a))
-	return (intersection/a)
-
-def recall(intersection):
-	global sentInExtResumes
-	print("Intersection: " + str(intersection) + " and sentInExtResumes: " + str(sentInExtResumes))
-	return (intersection/sentInExtResumes)
-
 def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
 	iteration = 1
 	recall_i = 0
@@ -337,6 +320,13 @@ def calc_MAP(our_Resume, ideal_Resume):
 	mean_avg_precision = mean_avg_precision/len(our_Resume.keys())
 	return mean_avg_precision
 
+def precison(intersection,a):
+	return len(intersection)/a
+
+def recall(intersection,extracted):
+	return len(intersection)/len(extracted)
+
+
 def main():
 	global docs
 	resume1=dict()
@@ -347,28 +337,51 @@ def main():
 	resume2=resumeEx(docs, False)
 	a=calcA()
 	extracted = saveResumes()
+	prec1 = 0
+	rec1 = 0
+	f11=0
+	mean_avg_precision1=0
+	prec2 = 0
+	rec2 = 0
+	f12=0
+	mean_avg_precision2=0
 
-	intersection = intersectCalc(resume1, extracted)
-	prec = precision(intersection, a)
-	rec = recall(intersection)
-	f1 = (2*rec*prec)/(rec+prec)
-	map1 = calc_MAP(resume1,extracted)
+	num_docs=len(docs)
+	for doc in docs:
+		intersection1=set(resume1[doc]).intersection(extracted[doc])
+		prec1 += precison(intersection1,a)
+		rec1 += recall(intersection1,extracted[doc])
+		f11 += (2*rec1*prec1)/(rec1+prec1)
+		mean_avg_precision1 += calc_avg_doc(resume1[doc], extracted[doc])
+		#////////////////for 2////////////
+		intersection2=set(resume2[doc]).intersection(extracted[doc])
+		prec2 += precison(intersection2,a)
+		rec2 += recall(intersection2,extracted[doc])
+		f12 += (2*rec2*prec2)/(rec2+prec2)
+		mean_avg_precision2 += calc_avg_doc(resume2[doc], extracted[doc])
+		
+	prec1=prec1/num_docs
+	rec1=rec1/num_docs
+	f11=f11/num_docs
+	mean_avg_precision1 = mean_avg_precision1/num_docs
 
-	intersection2 = intersectCalc(resume2, extracted)
-	prec2 = precision(intersection2, a)
-	rec2 = recall(intersection2)
-	f12 = (2 * rec2 * prec2) / (rec2 + prec2)
-	map2 = calc_MAP(resume2, extracted)
+	prec2=prec2/num_docs
+	rec2=rec2/num_docs
+	f12=f12/num_docs
+	mean_avg_precision2 = mean_avg_precision2/num_docs
+	
+	
+
 	print("--- Metrics for 1st Exercise Approach")
-	print("Precision: " + str(prec))
-	print("Recall : " + str(rec))
-	print("F1 : " + str(f1))
-	print("MAP : " + str(map1))
+	print("Precision: " + str(prec1))
+	print("Recall : " + str(rec1))
+	print("F1 : " + str(f11))
+	print("MAP : " + str(mean_avg_precision1))
 	print("--- Metrics for 2nd Exercise Simple Approach")
 	print("Precision: " + str(prec2))
 	print("Recall : " + str(rec2))
 	print("F1 : " + str(f12))
-	print("MAP : " + str(map2))
+	print("MAP : " + str(mean_avg_precision2))
 
 main()
 
