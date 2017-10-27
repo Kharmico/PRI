@@ -288,11 +288,6 @@ def saveResumes():
 		sentInExtResumes += len(sentences)
 	return extracted
 
-# Length (nº of sentences) of our own set
-def calcA():
-	global docs
-	return (len(docs)*RESUME_LEN)
-
 def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
 	iteration = 1
 	recall_i = 0
@@ -331,11 +326,9 @@ def main():
 	global docs
 	resume1=dict()
 	resume2=dict()
-	a=0
 	setInvertedList(docs)
 	resume1=resumeEx(docs, True)
 	resume2=resumeEx(docs, False)
-	a=calcA()
 	extracted = saveResumes()
 	prec1 = 0
 	rec1 = 0
@@ -349,13 +342,13 @@ def main():
 	num_docs=len(docs)
 	for doc in docs:
 		intersection1=set(resume1[doc]).intersection(extracted[doc])
-		prec1 += precison(intersection1,a)
+		prec1 += len(intersection1)/len(resume1[doc])
 		rec1 += recall(intersection1,extracted[doc])
 		f11 += (2*rec1*prec1)/(rec1+prec1)
 		mean_avg_precision1 += calc_avg_doc(resume1[doc], extracted[doc])
 		#////////////////for 2////////////
 		intersection2=set(resume2[doc]).intersection(extracted[doc])
-		prec2 += precison(intersection2,a)
+		prec2 += len(intersection2)/len(resume2[doc])
 		rec2 += recall(intersection2,extracted[doc])
 		f12 += (2*rec2*prec2)/(rec2+prec2)
 		mean_avg_precision2 += calc_avg_doc(resume2[doc], extracted[doc])
