@@ -3,7 +3,6 @@ import math
 import os
 import operator
 import nltk 
-from collections import 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
@@ -59,6 +58,8 @@ def stringToTerms(text):
 	return tokenizer.tokenize(text) # todas as palavras do texto 
 
 def DocToSentences(text):
+#problema de paragrafos que ano terminao com ponto final
+	text = text.replace('\n\n', '.\n').replace('..\n', '.\n')
 	frases_tokenize= tokenize.sent_tokenize(text, language='english')
 	return frases_tokenize
 
@@ -78,6 +79,7 @@ def setInvertedList(docs):
 		for sentence in sentences:
 			num_frases+=1
 			aux_terms=stringToTerms(sentence)
+			aux_terms1=set(aux_terms)
 			for t in aux_terms:
 				obj= TermClass()
 				obj.term=t
@@ -86,8 +88,7 @@ def setInvertedList(docs):
 				if sentence_counter not in invertedListDoc[doc][t]:
 					invertedListDoc[doc][t][sentence_counter]=0
 				invertedListDoc[doc][t][sentence_counter]+=1
-				if t not in terms:
-					terms[t]=obj
+				if t not in invertedList:
 					invertedList[t]=dict()
 				if doc not in invertedList[t]:
 					invertedList[t][doc]=dict()
@@ -270,7 +271,7 @@ def getOriginalSentence(doc,idexs):
 def resumeEx(docs, bool):
 	tfIdf1=dict()
 	tfIdf1=setTfIdf(bool)
-	scoresDocs=OrderedDict()
+	scoresDocs=dict()
 	resumesDocs=dict()
 	#print("resume bool")
 	for doc in docs:
