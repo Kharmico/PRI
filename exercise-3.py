@@ -5,7 +5,8 @@ import math
 import os
 import operator
 import nltk 
-nltk.download('punkt')
+import nltk.data
+#nltk.download('punkt')
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
@@ -18,27 +19,6 @@ from string import punctuation
 from nltk.chunk import RegexpParser
 from nltk import ngrams
 from nltk.corpus import floresta
-
-
- # #1. we obtain the unigrams
- #    unigrams = nltk.word_tokenize(text)
- #    #2. we get the bigrams
- #    bigrams = ngrams(unigrams, 2)
- #
- #
- # # POS Tagging each sentence
- #    tagged_sents = nltk.pos_tag_sents(nltk.word_tokenize(sent) for sent in nltk.sent_tokenize(text))
- #
- #    grammar = "NP: {(<JJ>* <NN.*>+ <IN>)? <JJ>* <NN.*>+}"
- #    chunker = nltk.chunk.regexp.RegexpParser(grammar)
- #    all_chunks = list(itertools.chain.from_iterable(nltk.chunk.tree2conlltags(chunker.parse(tagged_sent))
- #                                                        for tagged_sent in tagged_sents))
- #
- #    # This is the right way to go, bigrams and trigrams will not consider inter-phrase tokens
- #    candidates = [' '.join(word for word, pos, chunk in group).lower()
- #                      for key, group in itertools.groupby(all_chunks, lambda (word,pos,chunk): chunk != 'O') if key]
-
-#////////////////////////////////////////////////////////////////////////
 
 PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES='./ManualSummaries/'
@@ -58,6 +38,11 @@ num_frases_termo=dict() # key= termo,
                         #value = numero de fazes na colecao inteira em que o termo aparece
 sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
 stopwords = set(nltk.corpus.stopwords.words('portuguese'))
+#Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
+ENCODING='ISO 8859-1'
+grammar = "NP: {(<JJ>* <NN.*>+ <IN>)? <JJ>* <NN.*>+}+"
+chunker = nltk.chunk.regexp.RegexpParser(grammar)
+
 
 class TermClass:
     term = ""
@@ -77,7 +62,8 @@ class TermClass:
 
 def stringToTerms(text):
 	global stopwords
-	text=text.lower()
+	#text=text.lower()
+	print("texto original///////////////////////////////////////////////////")
 	tokenizer = RegexpTokenizer(r'\w+')
 	unigrams= tokenizer.tokenize(text) # todas as palavras do texto 
 	unigrams = [word for word in set(unigrams) if word not in stopwords]
@@ -85,18 +71,22 @@ def stringToTerms(text):
 	bigrams = ngrams(unigrams, 2)
 	#3. we join the bigrams in a list like so (word word)
 	text_bigrams = [' '.join(grams) for grams in bigrams]
-	#print("text_bigrams")
-	#i=0
-	#for gram in text_bigrams:
-	#	print(gram)#4. we join the unigram and bigram list to get all the candidates
-	#	i+=1
-	#print("n text_bigrams "+str(i))
+	tagged_sents = nltk.pos_tag_sents(tokenizer.tokenize(sent) for sent in sent_tokenizer.tokenize(text))
+
+
+	all_chunks = list(itertools.chain.from_iterable(nltk.chunk.tree2conlltags(chunker.parse(tagged_sent))for tagged_sent in tagged_sents))
+	print("///////////////////////////////////////////////////")
+	# This is the right way to go, bigrams and trigrams will not consider inter-phrase tokens   
+	candidates = [' '.join(word for word, pos, chunk in group).lower()for key, group in itertools.groupby(all_chunks, lambda (word,pos,chunk): chunk != 'O') if key]
+
 	candidates = unigrams + text_bigrams
 	
 	return candidates# todas as palavras do texto 
 
 def DocToSentences(text):
 	global sent_tokenizer
+	#problema de paragrafos que ano terminao com ponto final
+	text = text.replace('\n\n', '.\n').replace('..\n', '.\n')
 	frases_tokenize = sent_tokenizer.tokenize(text)
 	return frases_tokenize
 
@@ -118,7 +108,8 @@ def setInvertedList(docs):
         for sentence in sentences:
             num_frases+=1
             aux_terms=stringToTerms(sentence)
-            for t in set(aux_terms):
+            aux_terms1=set(aux_terms)
+            for t in aux_terms1:
                 if t not in invertedListDoc[doc]:
                     invertedListDoc[doc][t]=dict()
                 if sentence_counter not in invertedListDoc[doc][t]:
