@@ -3,6 +3,7 @@ import math
 import os
 import operator
 import nltk 
+from collections import 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
 from collections import Counter
@@ -21,6 +22,7 @@ terms = dict()
 invertedList = dict()#term-doc-sentence
 invertedListDoc=dict()#doc-term-sentence
 docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
+OriginalDocs=dict()
 resumes=[f for f in os.listdir(PATH_AUTO_IDEAL_EXTRACTIVES)]
 #docs= ['smalltest.txt']
 scores=dict() #key=doc-sentence - respective score
@@ -61,13 +63,15 @@ def DocToSentences(text):
 	return frases_tokenize
 
 def setInvertedList(docs):
-	global terms,invertedList,invertedListDoc,num_frases
+	global terms,invertedList,invertedListDoc,num_frases,OriginalDocs
 	#para cada doc
 	num_frases=0
 	for doc in docs:
 		f2 = open(PATH_SOURCE_TEXT+doc, "r")
 		#f2 = open(doc, "r")
-		text = f2.read().lower()
+		text = f2.read()
+		OriginalDocs[doc]=text
+		text = text.lower()
 		sentences = DocToSentences(text)
 		invertedListDoc[doc]=dict()
 		sentence_counter=1
@@ -87,17 +91,18 @@ def setInvertedList(docs):
 					invertedList[t]=dict()
 				if doc not in invertedList[t]:
 					invertedList[t][doc]=dict()
+				invertedList[t][doc][sentence_counter]=aux_terms.count(t)
 			sentence_counter+=1
 	#print("inverted list DOC:----------------------------------")
 	#print(str(invertedListDoc))
-	populateInvertedList(docs)
+	#populateInvertedList(docs)
 
 def populateInvertedList(docs):
-	global invertedList
+	global invertedList,OriginalDocs
 	for doc in docs:
-		f2 = open(PATH_SOURCE_TEXT+doc, "r")
+		#f2 = open(PATH_SOURCE_TEXT+doc, "r")
 		#f2 = open(doc, "r")
-		text = f2.read().lower()
+		text = OriginalDocs[doc].lower()
 		sentences = DocToSentences(text)
 		sentence_counter=1		
 		for sentence in sentences:
@@ -120,12 +125,12 @@ def maxTermfq(doc,sentence):
 	return max
 #true e ex1 false e idf do ex2
 def idf(term,doc,bool):
-	global num_frases,num_frases_termo,invertedList
+	global num_frases,num_frases_termo,invertedList,OriginalDocs
 	ni=0
 	n=0
-	f2 = open(PATH_SOURCE_TEXT+doc, "r")
+	#f2 = open(PATH_SOURCE_TEXT+doc, "r")
 	#f2 = open(doc, "r")
-	text = f2.read().lower()
+	text = OriginalDocs[doc].lower()
 	sentences = DocToSentences(text)
 	if(bool):
 		ni=len(invertedList[term][doc].keys())
@@ -250,9 +255,10 @@ def getResume(sentences_scores):
 #			print(sentence)
 
 def getOriginalSentence(doc,idexs):
-	f2 = open(PATH_SOURCE_TEXT+doc, "r")
+	global OriginalDocs
+	#f2 = open(PATH_SOURCE_TEXT+doc, "r")
 	#f2 = open(doc, "r")
-	text = f2.read()
+	text = OriginalDocs[doc]
 	sentences = DocToSentences(text)
 	#print("doc: "+doc+ " tem "+str(len(sentences)))
 	aux=[]
@@ -264,7 +270,7 @@ def getOriginalSentence(doc,idexs):
 def resumeEx(docs, bool):
 	tfIdf1=dict()
 	tfIdf1=setTfIdf(bool)
-	scoresDocs=dict()
+	scoresDocs=OrderedDict()
 	resumesDocs=dict()
 	#print("resume bool")
 	for doc in docs:
@@ -312,7 +318,7 @@ def calc_MAP(our_Resume, ideal_Resume):
 	for doc in docs:
 		mean_avg_precision += calc_avg_doc(our_Resume[doc], ideal_Resume[doc])
 
-	mean_avg_precision = mean_avg_precision/len(our_Resume.keys())
+	#mean_avg_precision = mean_avg_precision/len(our_Resume.keys())
 	return mean_avg_precision
 
 def main():
