@@ -23,27 +23,31 @@ from nltk.corpus import floresta
 PATH_SOURCE_TEXT ='./SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES='./ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
-RESUME_LEN = 5
 
-sentInExtResumes = 0
-invertedList = dict()#term-doc-sentence
-invertedListDoc=dict()#doc-term-sentence
-docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
-OriginalDocs=dict()
-resumes=[f for f in os.listdir(PATH_AUTO_IDEAL_EXTRACTIVES)]
-#docs= ['smalltest.txt']
-scores=dict() #key=doc-sentence - respective score
-num_frases=0
-num_frases_termo=dict() # key= termo, 
-                        #value = numero de fazes na colecao inteira em que o termo aparece
-sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
-stopwords = set(nltk.corpus.stopwords.words('portuguese'))
 #Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
 ENCODING='ISO 8859-1'
-grammar = "NP: {(<JJ>* <NN.*>+ <IN>)? <JJ>* <NN.*>+}+"
-chunker = nltk.chunk.regexp.RegexpParser(grammar)
+grammar = "NP: {(<JJ>* <NN.*>+ <IN>)? <JJ>* <NN.*>+}"
+sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
+stopwords = set(nltk.corpus.stopwords.words('portuguese'))
 
+lemmatizer = nltk.WordNetLemmatizer()
+stemmer = nltk.stem.porter.PorterStemmer()
+chunker = nltk.RegexpParser(grammar)
 
+docs = [f for f in os.listdir(PATH_SOURCE_TEXT)]
+#docs= ['smalltest.txt']
+resumes=[f for f in os.listdir(PATH_AUTO_IDEAL_EXTRACTIVES)]
+
+RESUME_LEN = 5
+num_frases=0
+sentInExtResumes = 0
+
+invertedList = dict()#term-doc-sentence
+invertedListDoc=dict()#doc-term-sentence
+OriginalDocs=dict()
+num_frases_termo=dict() # key= termo, 
+                        #value = numero de fazes na colecao inteira em que o termo aparece
+scores=dict() #key=doc-sentence - respective score
 class TermClass:
     term = ""
     isf = None
@@ -60,27 +64,63 @@ class TermClass:
     def __str__(self):  # equivalente a to string
         return self.term
 
+
+
+#//////EXTRACT NOUN FRASES/////////////////////////////////////////////
+def extract(unigrams):
+   
+    postoks = nltk.tag.pos_tag(unigrams)
+    tree = chunker.parse(postoks)
+    def leaves(tree):
+        """Finds NP (nounphrase) leaf nodes of a chunk tree."""
+        for subtree in tree.subtrees(filter = lambda t: t.label()=='NP'):
+            yield subtree.leaves()
+
+    def normalise(word):
+        """Normalises words to lowercase and stems and lemmatizes it."""
+        word = word.lower()
+        # word = stemmer.stem_word(word) #if we consider stemmer then results comes with stemmed word, but in this case word will not match with comment
+        word = lemmatizer.lemmatize(word)
+        return word
+
+    def acceptable_word(word):
+        """Checks conditions for acceptable word: length, stopword. We can increase the length if we want to consider large phrase"""
+        accepted = bool(2 <= len(word) <= 40
+            and word.lower() not in stopwords)
+        return accepted
+
+
+    def get_terms(tree):
+        for leaf in leaves(tree):
+            term = [ normalise(w) for w,t in leaf if acceptable_word(w) ]
+            yield term
+
+    terms = get_terms(tree)
+
+    aux=[]
+    for term in terms:
+        t=''
+        for word in term:
+            t+= ' '+word
+        t=t.strip()
+        aux=aux+[t]
+    return aux
+#///////////////////////////////////////////////////////////////////////
+
 def stringToTerms(text):
-	global stopwords
-	#text=text.lower()
-	print("texto original///////////////////////////////////////////////////")
+
 	tokenizer = RegexpTokenizer(r'\w+')
 	unigrams= tokenizer.tokenize(text) # todas as palavras do texto 
-	unigrams = [word for word in set(unigrams) if word not in stopwords]
+	#get noun phrases from text
+	noun_phrases=extract(unigrams)
+	unigrams = [word for word in set(unigrams) if word.lower() not in stopwords]
 	#2. we get the bigrams
 	bigrams = ngrams(unigrams, 2)
 	#3. we join the bigrams in a list like so (word word)
-	text_bigrams = [' '.join(grams) for grams in bigrams]
-	tagged_sents = nltk.pos_tag_sents(tokenizer.tokenize(sent) for sent in sent_tokenizer.tokenize(text))
-
-
-	all_chunks = list(itertools.chain.from_iterable(nltk.chunk.tree2conlltags(chunker.parse(tagged_sent))for tagged_sent in tagged_sents))
-	print("///////////////////////////////////////////////////")
-	# This is the right way to go, bigrams and trigrams will not consider inter-phrase tokens   
-	candidates = [' '.join(word for word, pos, chunk in group).lower()for key, group in itertools.groupby(all_chunks, lambda (word,pos,chunk): chunk != 'O') if key]
-
-	candidates = unigrams + text_bigrams
+	text_bigrams = [' '.join(grams.lower()) for grams in bigrams]
 	
+	candidates = unigrams + text_bigrams +noun_phrases
+	candidates=[word.lower() for word in candidates if (word.lower() not in stopwords and 2 <= len(word))]
 	return candidates# todas as palavras do texto 
 
 def DocToSentences(text):
@@ -121,8 +161,9 @@ def setInvertedList(docs):
                     invertedList[t][doc]=dict()
                 invertedList[t][doc][sentence_counter]=aux_terms.count(t)
             sentence_counter+=1
-    #print("inverted list:----------------------------------")
+    print("inverted list:----------------------------------")
     #print(str(invertedList.keys()))
+    print(str(len(invertedList.keys())))
     #populateInvertedList(docs)
 
 def populateInvertedList(docs):
@@ -350,9 +391,3 @@ def main():
     print("MAP : " + str(mean_avg_precision))
 
 main()
-
-
-
-
-
-
