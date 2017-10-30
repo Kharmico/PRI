@@ -161,9 +161,9 @@ def setInvertedList(docs):
                     invertedList[t][doc]=dict()
                 invertedList[t][doc][sentence_counter]=aux_terms.count(t)
             sentence_counter+=1
-    print("inverted list:----------------------------------")
+    #print("inverted list:----------------------------------")
     #print(str(invertedList.keys()))
-    print(str(len(invertedList.keys())))
+    #print(str(len(invertedList.keys())))
     #populateInvertedList(docs)
 
 def populateInvertedList(docs):
@@ -194,14 +194,22 @@ def maxTermfq(doc,sentence):
     return max
 #true e ex1 false e idf do ex2
 def idf(term,doc):
-    global invertedList,OriginalDocs
+    global invertedList,OriginalDocs,num_frases,num_frases_termo
     ni=0
     n=0
     text = OriginalDocs[doc].lower()
     sentences = DocToSentences(text)
-    n=len(sentences)
-    ni=len(invertedList[term][doc].keys())
-    return math.log10(n/ni)
+    #n=len(sentences)
+    #ni=len(invertedList[term][doc].keys())
+
+    if term in num_frases_termo:
+    	ni=num_frases_termo[term]
+    else:
+    	for doc in invertedList[term]:
+    		ni+=len(invertedList[term][doc].keys())
+    	num_frases_termo[term]=ni
+    n=num_frases
+    return math.log10((n-ni+0.5)/(ni+0.5))
 
 def setTfIdf():
     global invertedList
