@@ -1,4 +1,3 @@
-
 import os, nltk, string, itertools
 import re
 import math
@@ -8,6 +7,7 @@ import nltk
 import nltk.data
 #nltk.download('punkt')
 from collections import Counter
+from collections import OrderedDict
 from nltk import tokenize
 from nltk.tokenize import sent_tokenize, word_tokenize 
 from nltk.tokenize import RegexpTokenizer
@@ -24,7 +24,7 @@ PATH_AUTO_IDEAL_EXTRACTIVES='./AutoIdealExtractives/'
 
 #Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
 ENCODING='ISO 8859-1'
-grammar = "NP: {(<JJ>* <NN.*>+ <IN>)? <JJ>* <NN.*>+}"
+grammar = "NP: {(<ADJ>* <NOUN>+ <PRP>)? <ADJ>* <NOUN>+}"	#utilizar este padrao, mas alterar consoante o utilizado para o portugues(?)
 sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
 stopwords = set(nltk.corpus.stopwords.words('portuguese'))
 
@@ -62,11 +62,25 @@ class TermClass:
     def __str__(self):  # equivalente a to string
         return self.term
 
+
 #//////EXTRACT NOUN FRASES/////////////////////////////////////////////
 def extract(unigrams):
-   
-    postoks = nltk.tag.pos_tag(unigrams)
+
+    def simplify_tag(t):
+        if "+" in t:
+            return t[t.index("+")+1:]
+        else:
+            return t
+
+    testSents=floresta.tagged_sents()
+    testSents=[[(w.lower(), simplify_tag(t)) for (w,t) in sent] for sent in testSents if sent]
+    tagger0 = nltk.DefaultTagger('n')
+    tagger1 = nltk.UnigramTagger(testSents, backoff=tagger0)
+    postoks = tagger1.tag(unigrams)
+	#postoks = nltk.tag.pos_tag(unigrams)
     tree = chunker.parse(postoks)
+    #print("This is the unigrams: " + str(unigrams))
+    #print("---------------------------------------")
     def leaves(tree):
         """Finds NP (nounphrase) leaf nodes of a chunk tree."""
         for subtree in tree.subtrees(filter = lambda t: t.label()=='NP'):
@@ -109,11 +123,11 @@ def stringToTerms(text):
 	unigrams= tokenizer.tokenize(text) # todas as palavras do texto 
 	#get noun phrases from text
 	noun_phrases=extract(unigrams)
-	unigrams = [word for word in set(unigrams) if word.lower() not in stopwords]
+	unigrams = [word.lower() for word in set(unigrams) if word.lower() not in stopwords]
 	#2. we get the bigrams
 	bigrams = ngrams(unigrams, 2)
 	#3. we join the bigrams in a list like so (word word)
-	text_bigrams = [' '.join(grams.lower()) for grams in bigrams]
+	text_bigrams = [' '.join(grams) for grams in bigrams]
 	
 	candidates = unigrams + text_bigrams +noun_phrases
 	candidates=[word.lower() for word in candidates if (word.lower() not in stopwords and 2 <= len(word))]
@@ -121,9 +135,12 @@ def stringToTerms(text):
 
 def DocToSentences(text):
 	global sent_tokenizer
-	#problema de paragrafos que ano terminao com ponto final
-	text = text.replace('\n\n', '.\n').replace('..\n', '.\n')
-	frases_tokenize = sent_tokenizer.tokenize(text)
+	#problema de paragrafos que nao terminam com ponto final
+	#text = text.replace('\n\n', '.\n').replace('..\n', '.\n')
+	tokens = text.split('\n\n')
+	frases_tokenize = []
+	for t in tokens:
+		frases_tokenize += sent_tokenizer.tokenize(t)
 	return frases_tokenize
 
 def setInvertedList(docs):
@@ -131,34 +148,40 @@ def setInvertedList(docs):
     #para cada doc
     #print("inverted list")
     num_frases=0
+    orderd = OrderedDict()
     for doc in docs:
-    	sum_sentence_length=0
-        f2 = open(PATH_SOURCE_TEXT+doc, "r")
-        #f2 = open(doc, "r")
-        text = f2.read()
-        f2.close()
-        OriginalDocs[doc]=text
-        #text = text.lower()
-        sentences = DocToSentences(text)
-        sentence_counter=1
-        for sentence in sentences:
-            num_frases+=1
-            aux_terms=stringToTerms(sentence)
-            aux_terms1=set(aux_terms)
-            docSentenceTerm[doc][sentence_counter]=aux_terms
-             sum_sentence_length+=len(aux_terms)
-            for t in aux_terms1:
-                if t not in invertedList:
-                    invertedList[t]=dict()
-                if doc not in invertedList[t]:
-                    invertedList[t][doc]=dict()
-                invertedList[t][doc][sentence_counter]=aux_terms.count(t)
-            sentence_counter+=1
-        avgSentenceLength[doc]=(sum_sentence_length/sentence_counter)
+    	sum_sentence_length = 0
+    	f2 = open(PATH_SOURCE_TEXT + doc, "r")
+    	#f2 = open(doc, "r")
+    	text = f2.read()
+    	f2.close()
+    	OriginalDocs[doc]=text
+    	#text = text.lower()
+    	sentences = DocToSentences(text)
+    	sentence_counter=1
+    	docSentenceTerm[doc] = dict()
+    	#print("SENTENCES: " + str(sentences))
+    	for sentence in sentences:
+    		num_frases+=1
+    		aux_terms=stringToTerms(sentence)
+    		aux_terms1=set(aux_terms)
+    		docSentenceTerm[doc][sentence_counter]=aux_terms
+    		sum_sentence_length+=len(aux_terms)
+    		for t in aux_terms:
+    			if t not in invertedList:
+    				invertedList[t]=dict()
+    			if doc not in invertedList[t]:
+    				invertedList[t][doc]=dict()
+    			#invertedList[t][doc][sentence_counter]=aux_terms.count(t)
+    		sentence_counter+=1
+    	avgSentenceLength[doc]=(sum_sentence_length/sentence_counter)
     #print("inverted list:----------------------------------")
+    orderd=OrderedDict(sorted(invertedList.items()))
+    for k, v in orderd.items():
+    	print("This is a key: " + str(k))
     #print(str(invertedList.keys()))
     #print(str(len(invertedList.keys())))
-    #populateInvertedList(docs)
+    populateInvertedList(docs)
 
 def populateInvertedList(docs):
     global invertedList,OriginalDocs
@@ -196,23 +219,122 @@ def tf(term,doc,sentence,div):
 	b=0.75
 	numerador=invertedList[term][doc][sentence]*(k1+1)
 	denominador=invertedList[term][doc][sentence]+k1*(1-b+(b*div))
+	return (numerador/denominador)
 
-def calculateScoreOfsentences(doc):
+######################OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO#########################
+
+def getFqMaxDoc(doc):
+	global invertedListDoc
+	value=0
+	for term in invertedListDoc[doc]:
+		aux=0
+		for sentence in invertedListDoc[doc][term]:
+			aux+= invertedListDoc[doc][term][sentence]
+		if aux > value:
+			value=aux
+	return value
+#fq do termo que se repete mais vezes no doc
+def getFqTermDoc(term,doc):
+	value=0
+	global invertedListDoc
+	if term in invertedListDoc[doc]:
+		for sentence in invertedListDoc[doc][term]:
+			value+= invertedListDoc[doc][term][sentence]
+	return value
+
+# This is for BM25
+def setBM25():
+    global invertedList, docSentenceTerm
+    bm25 = dict()   # key = doc; value = dict of sentences with value of sentences_score
+    for doc in docSentenceTerm:
+        avgdl = avgSentenceLength[doc]
+        sentences_scores = dict()
+        for sentence in docSentenceTerm[doc]:
+            score = 0
+            d = len(docSentenceTerm[doc][sentence])
+            div = (d / avgdl)
+            for term in set(docSentenceTerm[doc][sentence]):
+                idfAux = idf(term, doc)
+                tfAux = tf(term, doc, sentence, div)
+                # print("idf: " + str(idfAux) + "\ntf: " + str(tfAux))
+                score += tfAux * idfAux
+            sentences_scores[sentence] = score
+        bm25[doc] = sentences_scores
+    return bm25
+
+def sqrtSomeSquares(doc, sentence, bm25):
+    # TODO:
+    value = 0
+    aux = dict()
+    aux = {k: v * v for k, v in bm25[doc][sentence].items()}
+    value = sum(aux.values())
+    return math.sqrt(value)
+
+
+def calcpesoTermoDoc(doc, bm25):
+    # TODO:
+    pesosDoc = dict()
+    maxTf = getFqMaxDoc(doc)
+    for sentence in bm25[doc]:
+        for term in bm25[doc][sentence]:
+            if term not in pesosDoc.keys():
+                pesosDoc[term] = ((getFqTermDoc(term, doc) / maxTf) * idf(term, doc))
+    return pesosDoc
+
+
+def sumMultiPesos(doc, sentence, pesosDoc, bm25):
+    # TODO:
+    value = 0
+    maxTf = getFqMaxDoc(doc)  # Tf maximo dos termos no documento
+    for term in bm25[doc][sentence]:
+        value += (bm25[doc][sentence][term] * pesosDoc[term])
+    # print("sumMultiPesos "+ str(sentence)+" "+term+" "+str(value))
+    return value
+
+
+def sqrtSomeSquaresDoc(pesosDoc):
+    value = 0
+    aux = dict()
+    aux = {k: v * v for k, v in pesosDoc.items()}
+    value = sum(aux.values())
+    return math.sqrt(value)
+
+
+def calculateScoreOfsentences(doc, bm25):
+    # TODO:
+    global invertedListDoc
+    pesosDoc = dict()
+    pesosDoc = calcpesoTermoDoc(doc, bm25)
+
+    sentences_scores = dict()
+    for sentence in bm25[doc]:
+        sqrt_some_squares = sqrtSomeSquares(doc, sentence, bm25)
+        soma_mult_pesos = sumMultiPesos(doc, sentence, pesosDoc, bm25)
+        sqrt_some_squares_doc = sqrtSomeSquaresDoc(pesosDoc)
+        # print("metricas "+str(sentence))
+        # print(str(sqrt_some_squares)+" "+str(soma_mult_pesos)+" "+str(sqrt_some_squares_doc))
+        sentences_scores[sentence] = (soma_mult_pesos) / (sqrt_some_squares * sqrt_some_squares_doc)
+    return sentences_scores
+
+######################OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO#########################
+
+def calculateScoreBM25(doc):
 	#BM25 alg
 	#TODO: calc peso do doc e das frases com a nova formla
-	global docSentenceTerm,
+	global docSentenceTerm
 	avgdl=avgSentenceLength[doc]
-    sentences_scores=dict()
-    for sentence in docSentenceTerm[doc]:
-    	score=0
-    	d=len(docSentenceTerm[doc][sentence])
-    	div=(d/avgdl)
-    	for term in set(docSentenceTerm[doc][sentence]):
-    		idf=idf(term,doc)
-    		tf=tf(term,doc,sentence,div)
-    		score+=tf*idf
-    	sentences_scores[sentence]=score
-    return sentences_scores    
+	sentences_scores=dict()
+	for sentence in docSentenceTerm[doc]:
+		score=0
+		d=len(docSentenceTerm[doc][sentence])
+		div=(d/avgdl)
+		for term in set(docSentenceTerm[doc][sentence]):
+			idfAux=idf(term,doc)
+			tfAux=tf(term,doc,sentence,div)
+			#print("idf: " + str(idfAux) + "\ntf: " + str(tfAux))
+			score+=tfAux*idfAux
+		sentences_scores[sentence]=score
+	return sentences_scores    
 
 def getResume(sentences_scores):
     tree_best=[]
@@ -241,9 +363,11 @@ def getOriginalSentence(doc,idexs):
 def resumeEx(docs):
     scoresDocs=dict()
     resumesDocs=dict()
+    bm25 = setBM25()
+
     #print("resume bool")
     for doc in docs:
-        scoresDocs[doc]=calculateScoreOfsentences(doc)
+        scoresDocs[doc]=calculateScoreOfsentences(doc, bm25)
         resumesDocs[doc]=getOriginalSentence(doc,getResume(scoresDocs[doc]))
     #printResume(resumesDocs)
     return resumesDocs
@@ -283,6 +407,7 @@ def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
     avg_precision=avg_precision/len(ideal_ResumeSents)
     return avg_precision
 
+
 def main():
     global docs
     resume=dict()
@@ -294,6 +419,7 @@ def main():
     mean_avg_precision=0
 
     num_docs=len(docs)
+    #print(num_docs)
     for doc in docs:
         intersection=set(resume[doc]).intersection(extracted[doc])
         prec += len(intersection)/len(resume[doc])
