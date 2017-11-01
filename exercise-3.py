@@ -59,7 +59,6 @@ testSents=[[(w.lower(), simplify_tag(t)) for (w,t) in sent] for sent in testSent
 tagger0 = nltk.DefaultTagger('n')
 tagger1 = nltk.UnigramTagger(testSents, backoff=tagger0)
 tokenizer = RegexpTokenizer(r'\w+')
-print("finish training tag")
 
 class TermClass:
 	term = ""
@@ -81,19 +80,12 @@ class TermClass:
 #//////EXTRACT NOUN FRASES/////////////////////////////////////////////
 def extract(unigrams):
 	postoks = tagger1.tag(unigrams)
-	print("unigramas ")
-	print(str(unigrams))
-	print()
-	print("tagged unigrams")
-	print(str(postoks))
-	print()
-	#postoks = nltk.tag.pos_tag(unigrams)
 	tree = chunker.parse(postoks)
 	#print("This is the unigrams: " + str(unigrams))
 	#print("---------------------------------------")
 	def leaves(tree):
 		"""Finds NP (nounphrase) leaf nodes of a chunk tree."""
-		for subtree in tree.subtrees(filter = lambda t: t.label()=='NP'):
+		for subtree in tree.subtrees(filter = lambda t: t.label()=='np'):
 			yield subtree.leaves()
 
 	def normalise(word):
@@ -128,18 +120,20 @@ def extract(unigrams):
 #///////////////////////////////////////////////////////////////////////
 
 def stringToTerms(text):
-
+	#text=text.translate(None,string.punctuation)
 	unigrams= tokenizer.tokenize(text) # todas as palavras do texto 
+	unigrams = [word.lower() for word in unigrams if word.lower() not in stopwords]
 	#get noun phrases from text
-	noun_phrases=extract(unigrams)
-	unigrams = [word.lower() for word in set(unigrams) if word.lower() not in stopwords]
+	#if because of sentences conposed only by stop words 'nao so isso'
+	noun_phrases=[]
+	if(len(unigrams))!=0:
+		noun_phrases=extract(unigrams)
 	#2. we get the bigrams
 	bigrams = ngrams(unigrams, 2)
 	#3. we join the bigrams in a list like so (word word)
 	text_bigrams = [' '.join(grams) for grams in bigrams]
-	
 	candidates = unigrams + text_bigrams +noun_phrases
-	candidates=[word.lower() for word in candidates if (word.lower() not in stopwords and 2 <= len(word))]
+	candidates=[word.lower() for word in set(candidates) if (word.lower() not in stopwords and 2 <= len(word))]
 	return candidates# todas as palavras do texto 
 
 def DocToSentences(text):
@@ -194,10 +188,10 @@ def setInvertedList(docs):
 					sentence_counter+=1
 		avgSentenceLength[doc]=(sum_sentence_length/sentence_counter)
 	#print("time setInvertedList: "+str(time.time()-start))
-	print("inverted list:----------------------------------")
-	orderd=OrderedDict(sorted(invertedList.items()))
-	for k, v in orderd.items():
-		print("This is a key: " + str(k))
+	#print("inverted list:----------------------------------")
+	#orderd=OrderedDict(sorted(invertedList.items()))
+	#for k, v in orderd.items():
+	#	print("This is a key: " + str(k))
 	#print(str(invertedList.keys()))
 	#print(str(len(invertedList.keys())))
 	#populateInvertedList(docs)
@@ -464,10 +458,10 @@ def main():
 	_f11=(2*rec*prec)/(rec+prec)
 	mean_avg_precision = mean_avg_precision/num_docs
 
-	#print("--- Metrics for 1st Exercise Approach")
-	#print("Precision: " + str(prec))
-	#print("Recall : " + str(rec))
-	#print("F1 : " + str(_f11))
-	#print("MAP : " + str(mean_avg_precision))
+	print("--- Metrics for 1st Exercise Approach")
+	print("Precision: " + str(prec))
+	print("Recall : " + str(rec))
+	print("F1 : " + str(_f11))
+	print("MAP : " + str(mean_avg_precision))
 
 main()
