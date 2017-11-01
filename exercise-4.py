@@ -431,37 +431,63 @@ def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
 	avg_precision=avg_precision/len(ideal_ResumeSents)
 	return avg_precision
 
-
+def resumeTop5(docs):
+	resumesDocs=dict()
+	for doc in docs:
+		aux=[]
+		text=OriginalDocs[doc]
+		sentences=DocToSentences(text)
+		for i in range(0,5):
+			aux.append(sentences[i])
+		resumesDocs[doc]=aux
+	return resumesDocs
 def main():
 	global docs
 	resume=dict()
 	setInvertedList(docs)
-	resume=resumeEx(docs)
+	resume1=resumeEx(docs)
+	resume2=resumeTop5(docs)
 	extracted = saveResumes()
-	prec = 0
-	rec = 0
-	mean_avg_precision=0
+	prec1 = 0
+	rec1 = 0
+	prec2=0
+	rec2=0
+	mean_avg_precision2=0
+	mean_avg_precision1=0
 
 	num_docs=len(docs)
 	#print(num_docs)
-	aux1=resume
-	aux2=extracted
 	for doc in docs:
-		intersection=set(resume[doc]).intersection(extracted[doc])
-		prec += len(intersection)/len(resume[doc])
-		rec += len(intersection)/len(extracted[doc])
-		mean_avg_precision += calc_avg_doc(resume[doc], extracted[doc])
+		intersection1=set(resume1[doc]).intersection(extracted[doc])
+		prec1 += len(intersection1)/len(resume1[doc])
+		rec1 += len(intersection1)/len(extracted[doc])
+		mean_avg_precision1 += calc_avg_doc(resume1[doc], extracted[doc])
 		#////////////////for 2////////////
+		intersection2=set(resume2[doc]).intersection(extracted[doc])
+		prec2 += len(intersection2)/len(resume2[doc])
+		rec2 += len(intersection2)/len(extracted[doc])
+		mean_avg_precision2 += calc_avg_doc(resume2[doc], extracted[doc])
 
-	prec=prec/num_docs
-	rec=rec/num_docs
-	_f11=(2*rec*prec)/(rec+prec)
-	mean_avg_precision = mean_avg_precision/num_docs
+	prec2=prec2/num_docs
+	rec2=rec2/num_docs
+	_f112=(2*rec2*prec2)/(rec2+prec2)
+	mean_avg_precision2 = mean_avg_precision2/num_docs
 
-	print("--- Metrics for 1st Exercise Approach")
-	print("Precision: " + str(prec))
-	print("Recall : " + str(rec))
-	print("F1 : " + str(_f11))
-	print("MAP : " + str(mean_avg_precision))
+	prec1=prec1/num_docs
+	rec1=rec1/num_docs
+	_f111=(2*rec2*prec2)/(rec2+prec2)
+	mean_avg_precision1 = mean_avg_precision1/num_docs
+
+	print("--- Metrics for MMR Approach")
+	print("Precision: " + str(prec1))
+	print("Recall : " + str(rec1))
+	print("F1 : " + str(_f111))
+	print("MAP : " + str(mean_avg_precision1))
+
+	print("--- Metrics for Firsth 5 sentences Approach")
+	print("Precision: " + str(prec2))
+	print("Recall : " + str(rec2))
+	print("F1 : " + str(_f112))
+	print("MAP : " + str(mean_avg_precision2))
 
 main()
