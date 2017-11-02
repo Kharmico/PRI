@@ -348,19 +348,21 @@ def sumSim(doc,sentence,bm25,S):
 	for s2 in S:
 		sqrt_some_squares2=Sqrt_Some_Squares(bm25[doc][s2])
 		soma_mult_pesos=Soma_Mult_Pesos(doc,bm25,sentence,s2)
+		#print("metricas sumSim"+ str(sqrt_some_squares1)+ " "+str(sqrt_some_squares2)+" "+str(soma_mult_pesos))
 		similaridades.append((soma_mult_pesos) / (sqrt_some_squares1 * sqrt_some_squares2))
 	return sum(similaridades)
 def getResume(doc,sentences_scores,bm25):
 	#do ex4 here
-	param = 0.5
+	param = -1
 	S=[]
 	#calcular os trees melhores
 	#sentences=list(bm25[doc].keys())
 	for x in range(0,RESUME_LEN):
-		_mmr=[]
+		_mmr=dict()
 		for sentence in sentences_scores:
-			_mmr.append((1-param)*sentences_scores[sentence]-(param*sumSim(doc,sentence,bm25,S)))
-		maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
+			_mmr[sentence]=(1-param)*sentences_scores[sentence]-(param*sumSim(doc,sentence,bm25,S))
+		maxSent=max(_mmr.keys(), key=(lambda key: _mmr[key]))
+		#print(_mmr)
 		S.append(maxSent)
 		del sentences_scores[maxSent]
 	S.sort() #TODO
