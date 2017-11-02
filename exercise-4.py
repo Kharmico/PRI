@@ -76,6 +76,9 @@ class TermClass:
 
 
 #//////EXTRACT NOUN FRASES/////////////////////////////////////////////
+#reference used to understand 
+#https://gist.github.com/karimkhanp/4b7626a933759d0113d54b09acef24bf
+#last vizited on 02/11/2017
 def extract(unigrams):
 	postoks = tagger1.tag(unigrams)
 	tree = chunker.parse(postoks)
@@ -83,13 +86,6 @@ def extract(unigrams):
 		"""Finds NP (nounphrase) leaf nodes of a chunk tree."""
 		for subtree in tree.subtrees(filter = lambda t: t.label()=='np'):
 			yield subtree.leaves()
-
-	def normalise(word):
-		"""Normalises words to lowercase and stems and lemmatizes it."""
-		word = word.lower()
-		# word = stemmer.stem_word(word) #if we consider stemmer then results comes with stemmed word, but in this case word will not match with comment
-		word = lemmatizer.lemmatize(word)
-		return word
 
 	def acceptable_word(word):
 		"""Checks conditions for acceptable word: length, stopword. We can increase the length if we want to consider large phrase"""
@@ -100,7 +96,7 @@ def extract(unigrams):
 
 	def get_terms(tree):
 		for leaf in leaves(tree):
-			term = [ normalise(w) for w,t in leaf if acceptable_word(w) ]
+			term = [ w.lower() for w,t in leaf if acceptable_word(w) ]
 			yield term
 
 	terms = get_terms(tree)
