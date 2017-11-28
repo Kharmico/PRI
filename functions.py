@@ -47,7 +47,10 @@ tokenizer = RegexpTokenizer(r'\w+')
 
 
 def DocToSentences(text):
-    tokens = text.split('\n\n')
+    tokens_tmp = text.split('\n\n')
+    tokens=[]
+    for t in tokens_tmp:
+        tokens = tokens +text.split('\n')
     frases_tokenize = []
     for t in tokens:
         frases_tokenize += sent_tokenizer.tokenize(t)
