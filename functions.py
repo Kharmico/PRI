@@ -1,5 +1,6 @@
 import math
 import nltk.data
+import os
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 from nltk import ngrams
@@ -7,11 +8,8 @@ from nltk.corpus import floresta
 
 
 PATH_TEXT = './teste/'
-PATH_SOURCE_TEXT = './SourceTextWithTitle/'
-PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
-
 
 sent_tokenizer = nltk.data.load('tokenizers/punkt/portuguese.pickle')
 tokenizer = RegexpTokenizer(r'\w+')
@@ -234,3 +232,35 @@ def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invert
         # print(invertedListDoc)# dicionario de dicionario onde key principal e' o nome do documento e seu value e' um dic com key = termo e value e' dic onde key  n.da frase e value n. vezes termo na frase
         # print(invertedList)#dic de dic onde key e' o termo e value e' um dic onde key e' o nome do doc e o value e' um dic onde a key e' o numero da frase e value e' o numero de ocorrencias do termo na frase
 
+def saveResumes(resumes):
+    extracted = dict()
+    sentInExtResumes = 0
+    for doc in resumes:
+        f2=open(PATH_AUTO_IDEAL_EXTRACTIVES + doc,'r')
+        file = f2.read()
+        f2.close()
+        sentences = DocToSentences(file)
+        docSeparate = doc.split("-")
+        docToSave = docSeparate[1] + "-" + docSeparate[2]
+        #print("Doc To Save: " + docToSave)
+        extracted[docToSave] = sentences
+        sentInExtResumes += len(sentences)
+    return extracted
+
+def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
+	iteration = 1
+	recall_i = 0
+	num_relevant_sentences = 0
+	avg_precision = 0
+	for sentence in our_ResumeSents:
+		if sentence in ideal_ResumeSents:
+			recall_i = 1
+		else:
+			recall_i = 0
+		if sentence in ideal_ResumeSents:
+			num_relevant_sentences += 1
+		precision_i = num_relevant_sentences/iteration
+		avg_precision += (precision_i*recall_i)
+		iteration += 1
+	avg_precision=avg_precision/len(ideal_ResumeSents)
+	return avg_precision
