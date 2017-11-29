@@ -42,42 +42,51 @@ def createGraph(docs,tfIdf1):
                 similarity = numerador / (denominador1*denominador2)
                # print("similarity", similarity)
                 if similarity > TRESHOLD:
-                    grafo[sentence1-1][sentence2-1]=similarity
+                    grafo[sentence1][sentence2]=similarity
         for sentence1 in tfIdf1[doc]:
             aux = " "
             for sentence2 in tfIdf1[doc]:
-                aux+= " " + str(grafo[sentence1 - 1][sentence2 - 1])
+                aux+= " " + str(grafo[sentence1][sentence2])
             #print(aux)
         setofGraphs[doc]=grafo
     return setofGraphs
 
 
+def getPr0(numsentences):
+    Po = 1/ numsentences
+    probpre=dict()
+     for i in range(numsentences):
+        probpre[i]=Po
+
 
 def pageRank(numsentences, graph ):
     d = 0.15
-    Po = 1/ numsentences
     #probpre = [Po for x in range(numsentences)]
    # probpos = [0 for x in range(numsentences)]
-    probpre=dict()
+    probpre=getPr0(numsentences)
+    prior=probpre
     probpos =dict()
-    for i in range(numsentences):
-        probpre[i+1]=Po
-        probpos[i+1]=0
    # for x in range(50):
     for i in range(numsentences):
-        probpos[i+1] =  (d / numsentences) + (1-d) * (somatorio(probpre, i, graph, numsentences))
+        probpos[i] =  (d *(prior[i]/somatorioPriors(prior,i, graph, numsentences))) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
     probpre = probpos
     return probpos
 
-def somatorio(probpre, i, graph, numsentences):
+def somatorioPriors(prior,i, graph, numsentences):
+    value = 0
+    for j in range(numsentences) :
+        if graph[i][j] > 0:
+            value+=graph[i][j]
+    return value
+def somatorioPesos(probpre, i, graph, numsentences):
     value = 0
     for j in range(numsentences) :
         counter= 0
         if graph[i][j] > 0:
             for k in range(numsentences):
                 if graph[j][k] > 0:
-                    counter +=1
-            value =value+ (probpre[j+1] / counter)
+                    counter +=graph[j][k]
+            value =value+ (probpre[j]* graph[i][j]/ counter)
     return value
 
 
