@@ -21,11 +21,6 @@ PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
 
-tokenizer = RegexpTokenizer(r'\w+')
-stopwords = set(nltk.corpus.stopwords.words('portuguese'))
-lemmatizer = nltk.WordNetLemmatizer()
-stemmer = nltk.stem.porter.PorterStemmer()
-
 def getTagger():
     testSents = floresta.tagged_sents()
     testSents = [[(w.lower(), simplify_tag(t)) for (w, t) in sent] for sent in testSents if sent]
@@ -38,7 +33,8 @@ def getChunker():
     chunker = nltk.RegexpParser(grammar)
     return chunker
 
-
+def  getStopWords():
+    return set(nltk.corpus.stopwords.words('portuguese'))
 
 def simplify_tag(t):
     if "+" in t:
@@ -50,10 +46,10 @@ def simplify_tag(t):
 def DocToSentences(text):
     sent_tokenizer = nltk.data.load('tokenizers/punkt/portuguese.pickle')
     tokenizer = RegexpTokenizer(r'\w+')
-    tokens_tmp = text.split('\n\n')
-    tokens=[]
-    for t in tokens_tmp:
-        tokens = tokens +text.split('\n')
+    tokens = text.split('\n\n')
+    #tokens=[]
+    #for t in tokens_tmp:
+    #    tokens = tokens +text.split('\n')
     frases_tokenize = []
     for t in tokens:
         frases_tokenize += sent_tokenizer.tokenize(t)
@@ -97,21 +93,23 @@ def getOriginalSentence(doc,idexs, OriginalDocs):
         return aux
 
 
-def stringToTerms(text, tagger1, chunker):
+def stringToTerms(text, tagger1, chunker,stopwords):
+    tokenizer = RegexpTokenizer(r'\w+')
     unigrams= tokenizer.tokenize(text) # todas as palavras do texto
     unigrams = [word.lower() for word in unigrams if word.lower() not in stopwords]
     #get noun phrases from text
     # #if because of sentences conposed only by stop words 'nao so isso'
     noun_phrases=[]
     if(len(unigrams))!=0:
-        noun_phrases=extract(unigrams, tagger1, chunker)
+        noun_phrases=extract(unigrams, tagger1, chunker,stopwords)
     bigrams = ngrams(unigrams, 2)
     text_bigrams = [' '.join(grams) for grams in bigrams]
     candidates = unigrams + text_bigrams +noun_phrases
     candidates=[word.lower() for word in set(candidates) if (word.lower() not in stopwords and 2 <= len(word))]
     return candidates# todas as palavras do texto
 
-def extract(unigrams, tagger1, chunker):
+def extract(unigrams, tagger1, chunker,stopwords):
+    stopwords=stopwords
     postoks = tagger1.tag(unigrams)
     tree = chunker.parse(postoks)
     def leaves(tree):
@@ -150,15 +148,14 @@ def getFqMaxDoc(doc, invertedListDoc):
     return value
 
 
-def getResume(sentences_scores, resumelen):
-	tree_best=[]
-	#calcular os trees melhores
-	for x in range(0,resumelen):
-		maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
-		tree_best.append(maxSent)
-		del sentences_scores[maxSent]
-	tree_best.sort()
-	return tree_best
+def getFiveBest(sentences_scores, resumelen):
+    five_best=[]
+    for x in range(0,resumelen):
+        maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
+        five_best.append(maxSent)
+        del sentences_scores[maxSent]
+    five_best.sort()
+    return five_best
 
 def sumMultiPesos(doc,sentence1, sentence2, tfIdf):
     value=0
@@ -185,10 +182,14 @@ def setTfIdf(docSentenceTerm, invertedList, OriginalDocs):
     tfIdf=dict()
     for doc in docSentenceTerm:
         tfIdf[doc]=dict()
+        #print("\n\n\n\n")
+       # print("doc "+doc)
         for sentence in docSentenceTerm[doc]:
+           # print("doc " + doc+" sentence "+str(sentence))
             tfIdf[doc][sentence]=dict()
             maxi=maxTermfq(doc,sentence, invertedList)
             for term in set(docSentenceTerm[doc][sentence]):
+               # print("doc " + doc + " sentence " + str(sentence)+ " term "+str(term))
                 _idf=idf(term,doc, OriginalDocs, invertedList)
                 tf=invertedList[term][doc][sentence]
                 value=(tf/maxi)*_idf
@@ -197,19 +198,19 @@ def setTfIdf(docSentenceTerm, invertedList, OriginalDocs):
 
 
 
-def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker):
+def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords):
     for doc in docs:
         f2 = open(PATH_TEXT + doc, "r")
         text = f2.read()
-        text = text.lower()
         OriginalDocs[doc] = text
+        text = text.lower()
         sentences = DocToSentences(text)
         invertedListDoc[doc] = dict()
         docSentenceTerm[doc] = dict()
         sentence_counter = 1
         for sentence in sentences:
             if len(sentence) != 0:
-                aux_terms = stringToTerms(sentence, tagger1, chunker)
+                aux_terms = stringToTerms(sentence, tagger1, chunker,stopwords)
                 if (len(aux_terms) != 0):
                     docSentenceTerm[doc][sentence_counter] = aux_terms
                     for t in aux_terms:
@@ -260,3 +261,17 @@ def calc_avg_doc(our_ResumeSents, ideal_ResumeSents):
 		iteration += 1
 	avg_precision=avg_precision/len(ideal_ResumeSents)
 	return avg_precision
+
+
+def getOriginalSentence(doc,idexs,OriginalDocs):
+	#global OriginalDocs
+	#f2 = open(PATH_SOURCE_TEXT+doc, "r")
+	#f2 = open(doc, "r")
+	text = OriginalDocs[doc]
+	sentences = DocToSentences(text)
+	#print("doc: "+doc+ " tem "+str(len(sentences)))
+	aux=[]
+	for i in idexs:
+	#   print("This is the value of i: " + str(i-1))
+		aux.append(sentences[i-1])
+	return aux

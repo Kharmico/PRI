@@ -1,5 +1,6 @@
 import os
-from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, calc_avg_doc, saveResumes, getChunker, getTagger
+from functions import *
+#from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, calc_avg_doc, saveResumes, getChunker, getTagger
 
 PATH_TEXT = './teste/'
 PATH_SOURCE_TEXT = './SourceTextWithTitle/'
@@ -7,6 +8,7 @@ PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
 TRESHOLD = 0.15
+
 
 sentInExtResumes = 0
 terms = dict()
@@ -21,8 +23,6 @@ scores2 = dict()
 tfIdf = dict()
 tf = dict()
 num_frases_termo = dict()
-
-
 
 
 def createGraph(docs,tfIdf1):
@@ -47,7 +47,7 @@ def createGraph(docs,tfIdf1):
             aux = " "
             for sentence2 in tfIdf1[doc]:
                 aux+= " " + str(grafo[sentence1 - 1][sentence2 - 1])
-            print(aux)
+            #print(aux)
         setofGraphs[doc]=grafo
     return setofGraphs
 
@@ -85,20 +85,27 @@ def somatorio(probpre, i, graph, numsentences):
 def main():
     global docs
     resume1 = dict()
+    num_docs = len(docs)
     mean_avg_precision = 0
     tagger1 = getTagger()
     chunker = getChunker()
     extracted = saveResumes(resumes)
-    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker)
+    stopwords= getStopWords()
+   # print("Set inverted List")
+    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
+    #print("Set of Graphas")
     setofGraphs =  createGraph(docs,tfIdf1)
+    #print("begin loop")
     for doc,graph in setofGraphs.items():
+        #print("doc "+str())
         numPhrases=len(tfIdf1[doc].keys())
         pagescore = pageRank(numPhrases, graph)
-        resume1[doc]= getResume(pagescore, 5)
-       # printBest(doc, resume1, OriginalDocs)
-        mean_avg_precision += calc_avg_doc(resume1[doc], extracted)
+        resume1[doc] = getOriginalSentence(doc,getFiveBest(pagescore, 5),OriginalDocs)
+        mean_avg_precision += calc_avg_doc(resume1[doc], extracted[doc])
+    mean_avg_precision = mean_avg_precision/ num_docs
     print("MAP : " + str(mean_avg_precision))
+
 
 main()
 
