@@ -65,10 +65,10 @@ def pageRank(numsentences, graph ):
     for i in range(numsentences):
         probpre[i+1]=Po
         probpos[i+1]=0
-   # for x in range(50):
-    for i in range(numsentences):
-        probpos[i+1] = (d / numsentences) + (1-d) * (somatorio(probpre, i, graph, numsentences))
-    probpre = probpos
+    for x in range(50):
+        for i in range(numsentences):
+            probpos[i+1] = (d / numsentences) + (1-d) * (somatorio(probpre, i, graph, numsentences))
+        probpre = probpos
     return probpos
 
 def somatorio(probpre, i, graph, numsentences):
