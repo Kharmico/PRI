@@ -1,6 +1,5 @@
 import math
 import nltk.data
-import os
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 from nltk import ngrams
@@ -11,17 +10,10 @@ PATH_TEXT = './teste/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
 
-sent_tokenizer = nltk.data.load('tokenizers/punkt/portuguese.pickle')
-tokenizer = RegexpTokenizer(r'\w+')
+
 #Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
 ENCODING='iso8859-1/latin1'
-grammar = "np: {(<adj>* <n>+ <prp>)? <adj>* <n>+}"	#utilizar este padrao, mas alterar consoante o utilizado para o portugues(?)
-sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
-stopwords = set(nltk.corpus.stopwords.words('portuguese'))
 
-lemmatizer = nltk.WordNetLemmatizer()
-stemmer = nltk.stem.porter.PorterStemmer()
-chunker = nltk.RegexpParser(grammar)
 
 PATH_TEXT = './teste/'
 PATH_SOURCE_TEXT = './SourceTextWithTitle/'
@@ -29,24 +21,35 @@ PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
 
+tokenizer = RegexpTokenizer(r'\w+')
+stopwords = set(nltk.corpus.stopwords.words('portuguese'))
+lemmatizer = nltk.WordNetLemmatizer()
+stemmer = nltk.stem.porter.PorterStemmer()
+
+def getTagger():
+    testSents = floresta.tagged_sents()
+    testSents = [[(w.lower(), simplify_tag(t)) for (w, t) in sent] for sent in testSents if sent]
+    tagger0 = nltk.DefaultTagger('n')
+    tagger1 = nltk.UnigramTagger(testSents, backoff=tagger0)
+    return tagger1
+
+def getChunker():
+    grammar = "np: {(<adj>* <n>+ <prp>)? <adj>* <n>+}"  # utilizar este padrao, mas alterar consoante o utilizado para o portugues(?)
+    chunker = nltk.RegexpParser(grammar)
+    return chunker
 
 
 
 def simplify_tag(t):
-		if "+" in t:
-			return t[t.index("+")+1:]
-		else:
-			return t
-
-testSents=floresta.tagged_sents()
-testSents=[[(w.lower(), simplify_tag(t)) for (w,t) in sent] for sent in testSents if sent]
-tagger0 = nltk.DefaultTagger('n')
-tagger0 = nltk.DefaultTagger('n')
-tagger1 = nltk.UnigramTagger(testSents, backoff=tagger0)
-tokenizer = RegexpTokenizer(r'\w+')
+    if "+" in t:
+        return t[t.index("+")+1:]
+    else:
+        return t
 
 
 def DocToSentences(text):
+    sent_tokenizer = nltk.data.load('tokenizers/punkt/portuguese.pickle')
+    tokenizer = RegexpTokenizer(r'\w+')
     tokens_tmp = text.split('\n\n')
     tokens=[]
     for t in tokens_tmp:
@@ -94,55 +97,45 @@ def getOriginalSentence(doc,idexs, OriginalDocs):
         return aux
 
 
-def stringToTerms(text):
-	#text=text.translate(None,string.punctuation)
-	unigrams= tokenizer.tokenize(text) # todas as palavras do texto
-	unigrams = [word.lower() for word in unigrams if word.lower() not in stopwords]
-	#get noun phrases from text
-	#if because of sentences conposed only by stop words 'nao so isso'
-	noun_phrases=[]
-	if(len(unigrams))!=0:
-		noun_phrases=extract(unigrams)
-	#2. we get the bigrams
-	bigrams = ngrams(unigrams, 2)
-	#3. we join the bigrams in a list like so (word word)
-	text_bigrams = [' '.join(grams) for grams in bigrams]
-	candidates = unigrams + text_bigrams +noun_phrases
-	candidates=[word.lower() for word in set(candidates) if (word.lower() not in stopwords and 2 <= len(word))]
-	return candidates# todas as palavras do texto
+def stringToTerms(text, tagger1, chunker):
+    unigrams= tokenizer.tokenize(text) # todas as palavras do texto
+    unigrams = [word.lower() for word in unigrams if word.lower() not in stopwords]
+    #get noun phrases from text
+    # #if because of sentences conposed only by stop words 'nao so isso'
+    noun_phrases=[]
+    if(len(unigrams))!=0:
+        noun_phrases=extract(unigrams, tagger1, chunker)
+    bigrams = ngrams(unigrams, 2)
+    text_bigrams = [' '.join(grams) for grams in bigrams]
+    candidates = unigrams + text_bigrams +noun_phrases
+    candidates=[word.lower() for word in set(candidates) if (word.lower() not in stopwords and 2 <= len(word))]
+    return candidates# todas as palavras do texto
 
-def extract(unigrams):
-	postoks = tagger1.tag(unigrams)
-	tree = chunker.parse(postoks)
-	#print("This is the unigrams: " + str(unigrams))
-	#print("---------------------------------------")
-	def leaves(tree):
-		"""Finds NP (nounphrase) leaf nodes of a chunk tree."""
-		for subtree in tree.subtrees(filter = lambda t: t.label()=='np'):
-			yield subtree.leaves()
+def extract(unigrams, tagger1, chunker):
+    postoks = tagger1.tag(unigrams)
+    tree = chunker.parse(postoks)
+    def leaves(tree):
+        """Finds NP (nounphrase) leaf nodes of a chunk tree."""
+        for subtree in tree.subtrees(filter = lambda t: t.label()=='np'):
+            yield subtree.leaves()
+    def acceptable_word(word):
+        accepted = bool(2 <= len(word) <= 40 and word.lower() not in stopwords)
+        return accepted
 
-	def acceptable_word(word):
-		"""Checks conditions for acceptable word: length, stopword. We can increase the length if we want to consider large phrase"""
-		accepted = bool(2 <= len(word) <= 40
-			and word.lower() not in stopwords)
-		return accepted
+    def get_terms(tree):
+        for leaf in leaves(tree):
+            term = [ w.lower() for w,t in leaf if acceptable_word(w) ]
+            yield term
 
-
-	def get_terms(tree):
-		for leaf in leaves(tree):
-			term = [ w.lower() for w,t in leaf if acceptable_word(w) ]
-			yield term
-
-	terms = get_terms(tree)
-
-	aux=[]
-	for term in terms:
-		t=''
-		for word in term:
-			t+= ' '+word
-		t=t.strip()
-		aux=aux+[t]
-	return aux
+    terms = get_terms(tree)
+    aux=[]
+    for term in terms:
+        t=''
+        for word in term:
+            t+= ' '+word
+        t=t.strip()
+        aux=aux+[t]
+    return aux
 
 
 
@@ -204,7 +197,7 @@ def setTfIdf(docSentenceTerm, invertedList, OriginalDocs):
 
 
 
-def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList):
+def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker):
     for doc in docs:
         f2 = open(PATH_TEXT + doc, "r")
         text = f2.read()
@@ -216,7 +209,7 @@ def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invert
         sentence_counter = 1
         for sentence in sentences:
             if len(sentence) != 0:
-                aux_terms = stringToTerms(sentence)
+                aux_terms = stringToTerms(sentence, tagger1, chunker)
                 if (len(aux_terms) != 0):
                     docSentenceTerm[doc][sentence_counter] = aux_terms
                     for t in aux_terms:

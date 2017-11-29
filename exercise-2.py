@@ -1,17 +1,5 @@
 import os
-import nltk.data
-from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, calc_avg_doc, saveResumes
-from nltk.tokenize import RegexpTokenizer
-
-#Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
-ENCODING='iso8859-1/latin1'
-grammar = "np: {(<adj>* <n>+ <prp>)? <adj>* <n>+}"	#utilizar este padrao, mas alterar consoante o utilizado para o portugues(?)
-sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
-stopwords = set(nltk.corpus.stopwords.words('portuguese'))
-
-lemmatizer = nltk.WordNetLemmatizer()
-stemmer = nltk.stem.porter.PorterStemmer()
-chunker = nltk.RegexpParser(grammar)
+from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, calc_avg_doc, saveResumes, getChunker, getTagger
 
 PATH_TEXT = './teste/'
 PATH_SOURCE_TEXT = './SourceTextWithTitle/'
@@ -33,8 +21,7 @@ scores2 = dict()
 tfIdf = dict()
 tf = dict()
 num_frases_termo = dict()
-sent_tokenizer = nltk.data.load('tokenizers/punkt/portuguese.pickle')
-tokenizer = RegexpTokenizer(r'\w+')
+
 
 
 
@@ -99,15 +86,17 @@ def main():
     global docs
     resume1 = dict()
     mean_avg_precision = 0
+    tagger1 = getTagger()
+    chunker = getChunker()
     extracted = saveResumes(resumes)
-    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList)
+    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
     setofGraphs =  createGraph(docs,tfIdf1)
     for doc,graph in setofGraphs.items():
         numPhrases=len(tfIdf1[doc].keys())
         pagescore = pageRank(numPhrases, graph)
         resume1[doc]= getResume(pagescore, 5)
-        printBest(doc, resume1, OriginalDocs)
+       # printBest(doc, resume1, OriginalDocs)
         mean_avg_precision += calc_avg_doc(resume1[doc], extracted)
     print("MAP : " + str(mean_avg_precision))
 

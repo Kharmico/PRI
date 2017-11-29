@@ -1,42 +1,13 @@
-import os, nltk, string, itertools
-import re
-import math
 import os
-import operator
-import nltk
-import nltk.data
-import numpy as np
-import time
-import functions
-from functions import DocToSentences, printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, stringToTerms
-#nltk.download('punkt')
-from collections import Counter
-from collections import OrderedDict
-from nltk import tokenize
-from nltk.tokenize import sent_tokenize, word_tokenize
-from nltk.tokenize import RegexpTokenizer
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus import stopwords
-from string import punctuation
-from nltk.chunk import RegexpParser
-from nltk import ngrams
-from nltk.corpus import floresta
+from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, getChunker, getTagger
 
-#Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
-ENCODING='iso8859-1/latin1'
-grammar = "np: {(<adj>* <n>+ <prp>)? <adj>* <n>+}"	#utilizar este padrao, mas alterar consoante o utilizado para o portugues(?)
-sent_tokenizer=nltk.data.load('tokenizers/punkt/portuguese.pickle')
-stopwords = set(nltk.corpus.stopwords.words('portuguese'))
-
-lemmatizer = nltk.WordNetLemmatizer()
-stemmer = nltk.stem.porter.PorterStemmer()
-chunker = nltk.RegexpParser(grammar)
 
 PATH_TEXT = './teste/'
 PATH_SOURCE_TEXT = './SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
+TRESHOLD = 0.15
 
 sentInExtResumes = 0
 terms = dict()
@@ -51,8 +22,7 @@ scores2 = dict()
 tfIdf = dict()
 tf = dict()
 num_frases_termo = dict()
-sent_tokenizer = nltk.data.load('tokenizers/punkt/portuguese.pickle')
-tokenizer = RegexpTokenizer(r'\w+')
+
 
 
 
@@ -74,7 +44,7 @@ def createGraph(docs,tfIdf1):
                # print("denominador2", denominador2)
                 similarity = numerador / (denominador1*denominador2)
                # print("similarity", similarity)
-                if similarity > 0.2 :
+                if similarity > TRESHOLD :
                     grafo[sentence1-1][sentence2-1]=similarity
         for sentence1 in tfIdf1[doc]:
             aux = " "
@@ -85,12 +55,9 @@ def createGraph(docs,tfIdf1):
     return setofGraphs
 
 
-
-
 def pageRank(numsentences, graph ):
     d = 0.15
     Po = 1/ numsentences
-
     #probpre = [Po for x in range(numsentences)]
    # probpos = [0 for x in range(numsentences)]
     probpre=dict()
@@ -120,14 +87,16 @@ def somatorio(probpre, i, graph, numsentences):
 def main():
     global docs
     resume1 = dict()
-    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList)
+    tagger1 = getTagger()
+    chunker = getChunker()
+    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
     setofGraphs =  createGraph(docs,tfIdf1)
     for doc,graph in setofGraphs.items():
         numPhrases=len(tfIdf1[doc].keys())
         pagescore = pageRank(numPhrases, graph)
         resume1[doc]= getResume(pagescore, 5)
-        printBest(doc, resume1, OriginalDocs)
+        #printBest(doc, resume1, OriginalDocs)
 
 
 main()
