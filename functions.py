@@ -59,7 +59,7 @@ def DocToSentences(text):
 def printBest(doc, fivebest, OriginalDocs):
     sentences =DocToSentences(OriginalDocs[doc])
     for i in fivebest[doc]:
-        print(sentences[int(i)-1])
+        print(sentences[int(i)])
 
 def sqrtSomeSquaresDoc(pesosDoc):
     value=0
@@ -89,7 +89,7 @@ def getOriginalSentence(doc,idexs, OriginalDocs):
     sentences = DocToSentences(text)
     aux=[]
     for i in idexs:
-        aux.append(sentences[i-1])
+        aux.append(sentences[i])
         return aux
 
 
@@ -207,7 +207,7 @@ def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invert
         sentences = DocToSentences(text)
         invertedListDoc[doc] = dict()
         docSentenceTerm[doc] = dict()
-        sentence_counter = 1
+        sentence_counter = 0
         for sentence in sentences:
             if len(sentence) != 0:
                 aux_terms = stringToTerms(sentence, tagger1, chunker,stopwords)
@@ -273,5 +273,5 @@ def getOriginalSentence(doc,idexs,OriginalDocs):
 	aux=[]
 	for i in idexs:
 	#   print("This is the value of i: " + str(i-1))
-		aux.append(sentences[i-1])
+		aux.append(sentences[i])
 	return aux
