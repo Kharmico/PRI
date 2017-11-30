@@ -55,21 +55,39 @@ def createGraph(docs,tfIdf1):
 def getPr0(numsentences):
     Po = 1/ numsentences
     probpre=dict()
-     for i in range(numsentences):
-        probpre[i]=Po
+    for i in range(numsentences):
+    	probpre[i]=Po
+    return probpre
+
+def getPr0BasedSentencePosition(numsentences):
+    Po = 1/ numsentences
+    probpre=dict()
+    som=0
+    for i in range(numsentences):
+        som+=Po*(numsentences/(i+1))
+        probpre[i]=Po*(numsentences/(i+1))
+    
+    for i in probpre:
+        probpre[i]=probpre[i]/som
+    #test
+    #som=0
+    #for i in probpre:
+    #    som+=probpre[i]
+    #if(som!=1):
+    #    print("erro som= "+str(som))
+    #return probpre
 
 
 def pageRank(numsentences, graph ):
     d = 0.15
-    #probpre = [Po for x in range(numsentences)]
-   # probpos = [0 for x in range(numsentences)]
-    probpre=getPr0(numsentences)
+    #probpre=getPr0(numsentences)
+    probpre=getPr0BasedSentencePosition(numsentences)
     prior=probpre
     probpos =dict()
-   # for x in range(50):
-    for i in range(numsentences):
-        probpos[i] =  (d *(prior[i]/somatorioPriors(prior,i, graph, numsentences))) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
-    probpre = probpos
+    for x in range(50):
+    	for i in range(numsentences):
+        	probpos[i] =  (d *(prior[i]/somatorioPriors(prior,i, graph, numsentences))) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
+    	probpre = probpos
     return probpos
 
 def somatorioPriors(prior,i, graph, numsentences):
