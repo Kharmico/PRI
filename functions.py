@@ -6,11 +6,6 @@ from nltk import ngrams
 from nltk.corpus import floresta
 
 
-PATH_TEXT = './teste/'
-PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
-RESUME_LEN = 5
-
-
 #Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
 ENCODING='iso8859-1/latin1'
 
@@ -19,7 +14,6 @@ PATH_TEXT = './teste/'
 PATH_SOURCE_TEXT = './SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
-RESUME_LEN = 5
 
 def getTagger():
     testSents = floresta.tagged_sents()
@@ -160,13 +154,16 @@ def getFiveBest(sentences_scores, resumelen):
 def sumMultiPesos(doc,sentence1, sentence2, tfIdf):
     value=0
     aux = set(tfIdf[doc][sentence1].keys()).intersection(tfIdf[doc][sentence2].keys())
-   # print(sentence1, tfIdf[doc][sentence1])
-   # print(sentence2, tfIdf[doc][sentence2])
-   # print("auuuuuuux", aux)
     for term in aux:
         value += tfIdf[doc][sentence1][term] * tfIdf[doc][sentence2][term]
     return value
-
+def sumMultiPesosDoc(doc,sentence,pesosDoc,tfIdf,  invertedListDoc):
+    value=0
+    maxTf=getFqMaxDoc(doc,  invertedListDoc)# Tf maximo dos termos no documento
+    for term in tfIdf[doc][sentence]:
+        value+=(tfIdf[doc][sentence][term] * pesosDoc[term])
+        #print("sumMultiPesos "+ str(sentence)+" "+term+" "+str(value))
+    return value
 
 def idf(term,doc, OriginalDocs, invertedList):
     num_frases = 0
@@ -275,3 +272,38 @@ def getOriginalSentence(doc,idexs,OriginalDocs):
 	#   print("This is the value of i: " + str(i-1))
 		aux.append(sentences[i])
 	return aux
+
+########deboraaa#########
+def calculateScoreOfsentences(doc, tfIdf, invertedListDoc, OriginalDocs, invertedList):
+    pesosDoc = calcpesoTermoDoc(doc, tfIdf, invertedListDoc, OriginalDocs, invertedList)
+    sentences_scores = dict()
+    sqrt_some_squares_doc = sqrtSomeSquaresDoc(pesosDoc)
+    for sentence in tfIdf[doc]:
+        sqrt_some_squares = sqrtSomeSquares(doc, sentence, tfIdf)
+        soma_mult_pesos = sumMultiPesosDoc(doc,sentence,pesosDoc,tfIdf,  invertedListDoc)
+        sentences_scores[sentence] = (soma_mult_pesos) / (sqrt_some_squares * sqrt_some_squares_doc)
+    return sentences_scores
+
+
+def calcpesoTermoDoc(doc,tfIdf, invertedListDoc, OriginalDocs, invertedList):
+    pesosDoc= dict()
+    maxTf=getFqMaxDoc(doc, invertedListDoc)
+    for sentence in tfIdf[doc]:
+        for term in tfIdf[doc][sentence]:
+            pesosDoc[term]=((getFqTermDoc(term,doc,invertedListDoc)/maxTf) * idf(term,doc, OriginalDocs, invertedList))
+    return pesosDoc
+
+def getFqTermDoc(term,doc,invertedListDoc):
+    value=0
+    if term in invertedListDoc[doc]:
+        for sentence in invertedListDoc[doc][term]:
+            value+= invertedListDoc[doc][term][sentence]
+    return value
+
+
+def getSentencesScoreDoc(docs,docSentenceTerm, invertedList, OriginalDocs, invertedListDoc, resumelen):
+    tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
+    scoresDocs = dict()
+    for doc in docs:
+        scoresDocs[doc] = calculateScoreOfsentences(doc, tfIdf1, invertedListDoc, OriginalDocs, invertedList)
+    return scoresDocs

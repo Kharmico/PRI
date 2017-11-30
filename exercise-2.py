@@ -75,13 +75,32 @@ def getPr0BasedSentencePosition(numsentences):
     #    som+=probpre[i]
     #if(som!=1):
     #    print("erro som= "+str(som))
-    #return probpre
+    return probpre
 
 
-def pageRank(numsentences, graph ):
+def getPr0BasedSentenceWeigth(numsentences,sentenceScore):
+    Po = 1 / numsentences
+    probpre = dict()
+    som = 0
+    for i in range(numsentences):
+        som += Po * sentenceScore[i]
+        probpre[i] = Po * sentenceScore[i]
+
+    for i in probpre:
+        probpre[i] = probpre[i] / som
+    # test
+    # som=0
+    # for i in probpre:
+    #    som+=probpre[i]
+    # if(som!=1):
+    #    print("erro som= "+str(som))
+    return probpre
+
+def pageRank(numsentences, graph ,Pr0):
     d = 0.15
     #probpre=getPr0(numsentences)
-    probpre=getPr0BasedSentencePosition(numsentences)
+    #probpre=getPr0BasedSentencePosition(numsentences)
+    probpre=Pr0
     prior=probpre
     probpos =dict()
     for x in range(50):
@@ -89,7 +108,6 @@ def pageRank(numsentences, graph ):
         	probpos[i] =  (d *(prior[i]/somatorioPriors(prior,i, graph, numsentences))) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
     	probpre = probpos
     return probpos
-
 def somatorioPriors(prior,i, graph, numsentences):
     value = 0
     for j in range(numsentences) :
@@ -118,17 +136,18 @@ def main():
     chunker = getChunker()
     extracted = saveResumes(resumes)
     stopwords= getStopWords()
-   # print("Set inverted List")
     setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
-    #print("Set of Graphas")
     setofGraphs =  createGraph(docs,tfIdf1)
-    #print("begin loop")
+    sentencesScores=getSentencesScoreDoc(docs, docSentenceTerm, invertedList, OriginalDocs, invertedListDoc, RESUME_LEN)
     for doc,graph in setofGraphs.items():
         #print("doc "+str())
         numPhrases=len(tfIdf1[doc].keys())
-        pagescore = pageRank(numPhrases, graph)
-        resume1[doc] = getOriginalSentence(doc,getFiveBest(pagescore, 5),OriginalDocs)
+        #pr0=getPr0BasedSentencePosition(numsentences)
+        #pr0=getPr0(numPhrases)
+        pr0=getPr0BasedSentenceWeigth(numPhrases,sentencesScores[doc])
+        pagescore = pageRank(numPhrases, graph,pr0)
+        resume1[doc] = getOriginalSentence(doc,getFiveBest(pagescore, RESUME_LEN),OriginalDocs)
         mean_avg_precision += calc_avg_doc(resume1[doc], extracted[doc])
     mean_avg_precision = mean_avg_precision/ num_docs
     print("MAP : " + str(mean_avg_precision))
