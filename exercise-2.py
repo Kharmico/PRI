@@ -39,7 +39,11 @@ def createGraph(docs,tfIdf1):
                # print("denominador1", denominador1)
                 denominador2 = sqrtSomeSquares(doc,sentence2,tfIdf1)
                # print("denominador2", denominador2)
-                similarity = numerador / (denominador1*denominador2)
+                aux=denominador1*denominador2
+                if(aux!=0):
+                    similarity = numerador / (aux)
+                else:
+                    similarity=0
                # print("similarity", similarity)
                 if similarity > TRESHOLD:
                     grafo[sentence1][sentence2]=similarity
@@ -96,7 +100,7 @@ def getPr0BasedSentenceWeigth(numsentences,sentenceScore):
     #    print("erro som= "+str(som))
     return probpre
 
-def pageRank(numsentences, graph ,Pr0):
+def pageRank(numsentences, graph ,Pr0,pesos):
     d = 0.15
     #probpre=getPr0(numsentences)
     #probpre=getPr0BasedSentencePosition(numsentences)
@@ -105,7 +109,11 @@ def pageRank(numsentences, graph ,Pr0):
     probpos =dict()
     for x in range(50):
     	for i in range(numsentences):
-        	probpos[i] =  (d *(prior[i]/somatorioPriors(prior,i, graph, numsentences))) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
+            aux=somatorioPriors(prior,i, graph, numsentences)
+            v=0
+            if(aux!=0):
+                v=prior[i]/aux
+            probpos[i] =  (d *(v)) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences,pesos))
     	probpre = probpos
     return probpos
 def somatorioPriors(prior,i, graph, numsentences):
@@ -114,7 +122,9 @@ def somatorioPriors(prior,i, graph, numsentences):
         if graph[i][j] > 0:
             value+=graph[i][j]
     return value
-def somatorioPesos(probpre, i, graph, numsentences):
+
+
+def somatorioPesos(probpre, i, graph, numsentences,pesos):
     value = 0
     for j in range(numsentences) :
         counter= 0
@@ -125,6 +135,24 @@ def somatorioPesos(probpre, i, graph, numsentences):
             value =value+ (probpre[j]* graph[i][j]/ counter)
     return value
 
+def getPesosNounFrases (text,numPhrases,tagger1, chunker, stopwords):
+    #text is the text of the original doc
+    text = text.lower()
+    sentences = DocToSentences(text)
+    pesos= [[0 for i in range(numPhrases)] for j in range(numPhrases)]
+    if(numPhrases!=len(sentences)):
+        print("erro")
+    x=0
+    y=0
+    for sentence1 in sentences:
+        nounPhrases1 = getNounFrases(sentence1,tagger1, chunker, stopwords)
+        y=0
+        for sentence2 in sentences:
+            nounPhrases2 = getNounFrases(sentence2, tagger1, chunker, stopwords)
+            pesos[x][y]=len(set(nounPhrases1).intersection(nounPhrases2))
+            y+=1
+        x+=1
+    return pesos
 
 
 def main():
@@ -146,7 +174,10 @@ def main():
         #pr0=getPr0BasedSentencePosition(numsentences)
         #pr0=getPr0(numPhrases)
         pr0=getPr0BasedSentenceWeigth(numPhrases,sentencesScores[doc])
-        pagescore = pageRank(numPhrases, graph,pr0)
+        #pesos the similaridade entre pares de frazes já existe no grafo
+        #pesos=graph
+        pesos=getPesosNounFrases(OriginalDocs[doc],numPhrases,tagger1, chunker, stopwords)
+        pagescore = pageRank(numPhrases, graph,pr0,pesos)
         resume1[doc] = getOriginalSentence(doc,getFiveBest(pagescore, RESUME_LEN),OriginalDocs)
         mean_avg_precision += calc_avg_doc(resume1[doc], extracted[doc])
     mean_avg_precision = mean_avg_precision/ num_docs
