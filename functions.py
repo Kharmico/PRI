@@ -206,22 +206,22 @@ def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invert
         docSentenceTerm[doc] = dict()
         sentence_counter = 0
         for sentence in sentences:
-            if len(sentence) != 0:
-                aux_terms = stringToTerms(sentence, tagger1, chunker,stopwords)
-                if (len(aux_terms) != 0):
-                    docSentenceTerm[doc][sentence_counter] = aux_terms
-                    for t in aux_terms:
-                        if t not in invertedListDoc[doc]:
-                            invertedListDoc[doc][t] = dict()
-                        if sentence_counter not in invertedListDoc[doc][t]:
-                            invertedListDoc[doc][t][sentence_counter] = 0
-                        invertedListDoc[doc][t][sentence_counter] += 1
-                        if t not in invertedList:
-                            invertedList[t] = dict()
-                        if doc not in invertedList[t]:
-                            invertedList[t][doc] = dict()
-                        invertedList[t][doc][sentence_counter] = aux_terms.count(t)
-                    sentence_counter += 1
+            #if len(sentence) != 0:
+            aux_terms = stringToTerms(sentence, tagger1, chunker,stopwords)
+            #if (len(aux_terms) != 0):
+            docSentenceTerm[doc][sentence_counter] = aux_terms
+            for t in aux_terms:
+                if t not in invertedListDoc[doc]:
+                    invertedListDoc[doc][t] = dict()
+                if sentence_counter not in invertedListDoc[doc][t]:
+                    invertedListDoc[doc][t][sentence_counter] = 0
+                invertedListDoc[doc][t][sentence_counter] += 1
+                if t not in invertedList:
+                    invertedList[t] = dict()
+                if doc not in invertedList[t]:
+                    invertedList[t][doc] = dict()
+                invertedList[t][doc][sentence_counter] = aux_terms.count(t)
+            sentence_counter += 1
         #print(docSentenceTerm)# dic de dic onde key nome do doc value e' dic onde key e' numero da frase e value array dos termos da frase
         # print(invertedListDoc)# dicionario de dicionario onde key principal e' o nome do documento e seu value e' um dic com key = termo e value e' dic onde key  n.da frase e value n. vezes termo na frase
         # print(invertedList)#dic de dic onde key e' o termo e value e' um dic onde key e' o nome do doc e o value e' um dic onde a key e' o numero da frase e value e' o numero de ocorrencias do termo na frase
@@ -281,7 +281,11 @@ def calculateScoreOfsentences(doc, tfIdf, invertedListDoc, OriginalDocs, inverte
     for sentence in tfIdf[doc]:
         sqrt_some_squares = sqrtSomeSquares(doc, sentence, tfIdf)
         soma_mult_pesos = sumMultiPesosDoc(doc,sentence,pesosDoc,tfIdf,  invertedListDoc)
-        sentences_scores[sentence] = (soma_mult_pesos) / (sqrt_some_squares * sqrt_some_squares_doc)
+        aux=sqrt_some_squares * sqrt_some_squares_doc
+        if(aux!=0):
+            sentences_scores[sentence] = (soma_mult_pesos) / (aux)
+        else:
+            sentences_scores[sentence]=0
     return sentences_scores
 
 
@@ -307,3 +311,15 @@ def getSentencesScoreDoc(docs,docSentenceTerm, invertedList, OriginalDocs, inver
     for doc in docs:
         scoresDocs[doc] = calculateScoreOfsentences(doc, tfIdf1, invertedListDoc, OriginalDocs, invertedList)
     return scoresDocs
+
+
+def getNounFrases(text,tagger1, chunker, stopwords):
+    tokenizer = RegexpTokenizer(r'\w+')
+    unigrams = tokenizer.tokenize(text)  # todas as palavras do texto
+    unigrams = [word.lower() for word in unigrams if word.lower() not in stopwords]
+    # get noun phrases from text
+    # #if because of sentences conposed only by stop words 'nao so isso'
+    noun_phrases = []
+    if (len(unigrams)) != 0:
+        noun_phrases = extract(unigrams, tagger1, chunker, stopwords)
+    return noun_phrases
