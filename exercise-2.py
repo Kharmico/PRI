@@ -25,7 +25,7 @@ tf = dict()
 num_frases_termo = dict()
 
 
-def createGraph(docs,tfIdf1):
+def createGraphCosSimilarity(docs, tfIdf1):
     setofGraphs= dict()
     count = 0
     #print("tfidf", tfIdf1)
@@ -47,14 +47,13 @@ def createGraph(docs,tfIdf1):
                # print("similarity", similarity)
                 if similarity > TRESHOLD:
                     grafo[sentence1][sentence2]=similarity
-        for sentence1 in tfIdf1[doc]:
-            aux = " "
-            for sentence2 in tfIdf1[doc]:
-                aux+= " " + str(grafo[sentence1][sentence2])
+        #for sentence1 in tfIdf1[doc]:
+            #aux = " "
+            #for sentence2 in tfIdf1[doc]:
+              #  aux+= " " + str(grafo[sentence1][sentence2])
             #print(aux)
         setofGraphs[doc]=grafo
     return setofGraphs
-
 
 def getPr0(numsentences):
     Po = 1/ numsentences
@@ -73,14 +72,7 @@ def getPr0BasedSentencePosition(numsentences):
     
     for i in probpre:
         probpre[i]=probpre[i]/som
-    #test
-    #som=0
-    #for i in probpre:
-    #    som+=probpre[i]
-    #if(som!=1):
-    #    print("erro som= "+str(som))
     return probpre
-
 
 def getPr0BasedSentenceWeigth(numsentences,sentenceScore):
     Po = 1 / numsentences
@@ -92,15 +84,9 @@ def getPr0BasedSentenceWeigth(numsentences,sentenceScore):
 
     for i in probpre:
         probpre[i] = probpre[i] / som
-    # test
-    # som=0
-    # for i in probpre:
-    #    som+=probpre[i]
-    # if(som!=1):
-    #    print("erro som= "+str(som))
     return probpre
 
-def pageRank(numsentences, graph ,Pr0,pesos):
+def pageRank(numsentences, graph ,Pr0):
     d = 0.15
     #probpre=getPr0(numsentences)
     #probpre=getPr0BasedSentencePosition(numsentences)
@@ -113,9 +99,10 @@ def pageRank(numsentences, graph ,Pr0,pesos):
             v=0
             if(aux!=0):
                 v=prior[i]/aux
-            probpos[i] =  (d *(v)) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences,pesos))
+            probpos[i] =  (d *(v)) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
     	probpre = probpos
     return probpos
+
 def somatorioPriors(prior,i, graph, numsentences):
     value = 0
     for j in range(numsentences) :
@@ -123,8 +110,7 @@ def somatorioPriors(prior,i, graph, numsentences):
             value+=graph[i][j]
     return value
 
-
-def somatorioPesos(probpre, i, graph, numsentences,pesos):
+def somatorioPesos(probpre, i, graph, numsentences):
     value = 0
     for j in range(numsentences) :
         counter= 0
@@ -135,25 +121,35 @@ def somatorioPesos(probpre, i, graph, numsentences,pesos):
             value =value+ (probpre[j]* graph[i][j]/ counter)
     return value
 
-def getPesosNounFrases (text,numPhrases,tagger1, chunker, stopwords):
+def creatGrafsNounFrases (OriginalDocs,tagger1, chunker, stopwords):
     #text is the text of the original doc
-    text = text.lower()
-    sentences = DocToSentences(text)
-    pesos= [[0 for i in range(numPhrases)] for j in range(numPhrases)]
-    if(numPhrases!=len(sentences)):
-        print("erro")
-    x=0
-    y=0
-    for sentence1 in sentences:
-        nounPhrases1 = getNounFrases(sentence1,tagger1, chunker, stopwords)
+    setofGraphs = dict()
+    count = 0
+    # print("tfidf", tfIdf1)
+    for doc in OriginalDocs:
+        text=OriginalDocs[doc]
+        text = text.lower()
+        sentences = DocToSentences(text)
+        grafo= [[0 for i in range(len(sentences))] for j in range(len(sentences))]
+        x=0
         y=0
-        for sentence2 in sentences:
-            nounPhrases2 = getNounFrases(sentence2, tagger1, chunker, stopwords)
-            pesos[x][y]=len(set(nounPhrases1).intersection(nounPhrases2))
-            y+=1
-        x+=1
-    return pesos
+        for sentence1 in sentences:
+            nounPhrases1 = getNounFrases(sentence1,tagger1, chunker, stopwords)
+            y=0
+            for sentence2 in sentences:
+                nounPhrases2 = getNounFrases(sentence2, tagger1, chunker, stopwords)
+                grafo[x][y]=len(set(nounPhrases1).intersection(nounPhrases2))
+                y+=1
+            x+=1
+        setofGraphs[doc] = grafo
+    return setofGraphs
 
+def getPr0BasedNumTermsFrase(numsentences,numTermsDoc,numTermsSentence):
+    probpre = dict()
+    for i in range(numsentences):
+        probpre[i]=numTermsSentence[i]/numTermsDoc
+
+    return probpre
 
 def main():
     global docs
@@ -164,25 +160,27 @@ def main():
     chunker = getChunker()
     extracted = saveResumes(resumes)
     stopwords= getStopWords()
-    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords)
+    numTermsDoc=dict()
+    numTermsDocSentence=dict()
+    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords,numTermsDoc,numTermsDocSentence)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
-    setofGraphs =  createGraph(docs,tfIdf1)
+
+    #setofGraphs =  createGraphCosSimilarity(docs, tfIdf1)
+    setofGraphs=creatGrafsNounFrases(OriginalDocs,tagger1, chunker, stopwords)
+
     sentencesScores=getSentencesScoreDoc(docs, docSentenceTerm, invertedList, OriginalDocs, invertedListDoc, RESUME_LEN)
     for doc,graph in setofGraphs.items():
         #print("doc "+str())
         numPhrases=len(tfIdf1[doc].keys())
         #pr0=getPr0BasedSentencePosition(numsentences)
         #pr0=getPr0(numPhrases)
-        pr0=getPr0BasedSentenceWeigth(numPhrases,sentencesScores[doc])
-        #pesos the similaridade entre pares de frazes já existe no grafo
-        #pesos=graph
-        pesos=getPesosNounFrases(OriginalDocs[doc],numPhrases,tagger1, chunker, stopwords)
-        pagescore = pageRank(numPhrases, graph,pr0,pesos)
+        pr0=getPr0BasedNumTermsFrase(numPhrases,numTermsDoc[doc],numTermsDocSentence[doc])
+        #pr0=getPr0BasedSentenceWeigth(numPhrases,sentencesScores[doc])
+        pagescore = pageRank(numPhrases, graph,pr0)
         resume1[doc] = getOriginalSentence(doc,getFiveBest(pagescore, RESUME_LEN),OriginalDocs)
         mean_avg_precision += calc_avg_doc(resume1[doc], extracted[doc])
     mean_avg_precision = mean_avg_precision/ num_docs
     print("MAP : " + str(mean_avg_precision))
-
 
 main()
 

@@ -195,8 +195,10 @@ def setTfIdf(docSentenceTerm, invertedList, OriginalDocs):
 
 
 
-def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords):
+def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords,numTermsDoc,numTermsDocSentence):
     for doc in docs:
+        numTermsDoc[doc]=0
+        numTermsDocSentence[doc]=dict()
         f2 = open(PATH_TEXT + doc, "r")
         text = f2.read()
         OriginalDocs[doc] = text
@@ -209,6 +211,8 @@ def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invert
             #if len(sentence) != 0:
             aux_terms = stringToTerms(sentence, tagger1, chunker,stopwords)
             #if (len(aux_terms) != 0):
+            numTermsDoc[doc]+=len(aux_terms)
+            numTermsDocSentence[doc][sentence_counter]=len(aux_terms)
             docSentenceTerm[doc][sentence_counter] = aux_terms
             for t in aux_terms:
                 if t not in invertedListDoc[doc]:
