@@ -8,12 +8,8 @@ from nltk.corpus import floresta
 
 #Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
 ENCODING='iso8859-1/latin1'
+TRESHOLD = 0.15
 
-
-PATH_TEXT = './teste/'
-PATH_SOURCE_TEXT = './SourceTextWithTitle/'
-PATH_MANUAL_SUMMARIES = './ManualSummaries/'
-PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 
 def getTagger():
     testSents = floresta.tagged_sents()
@@ -87,7 +83,7 @@ def getOriginalSentence(doc,idexs, OriginalDocs):
         return aux
 
 
-def stringToTerms(text, tagger1, chunker,stopwords):
+def stringToTerms(text, tagger1, chunker, stopwords):
     tokenizer = RegexpTokenizer(r'\w+')
     unigrams= tokenizer.tokenize(text) # todas as palavras do texto
     unigrams = [word.lower() for word in unigrams if word.lower() not in stopwords]
@@ -195,7 +191,7 @@ def setTfIdf(docSentenceTerm, invertedList, OriginalDocs):
 
 
 
-def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords,numTermsDoc,numTermsDocSentence):
+def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords,numTermsDoc,numTermsDocSentence, PATH_TEXT):
     for doc in docs:
         numTermsDoc[doc]=0
         numTermsDocSentence[doc]=dict()
@@ -230,7 +226,7 @@ def setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invert
         # print(invertedListDoc)# dicionario de dicionario onde key principal e' o nome do documento e seu value e' um dic com key = termo e value e' dic onde key  n.da frase e value n. vezes termo na frase
         # print(invertedList)#dic de dic onde key e' o termo e value e' um dic onde key e' o nome do doc e o value e' um dic onde a key e' o numero da frase e value e' o numero de ocorrencias do termo na frase
 
-def saveResumes(resumes):
+def saveResumes(resumes, PATH_AUTO_IDEAL_EXTRACTIVES):
     extracted = dict()
     sentInExtResumes = 0
     for doc in resumes:
@@ -309,7 +305,7 @@ def getFqTermDoc(term,doc,invertedListDoc):
     return value
 
 
-def getSentencesScoreDoc(docs,docSentenceTerm, invertedList, OriginalDocs, invertedListDoc, resumelen):
+def getSentencesScoreDoc(docs,docSentenceTerm, invertedList, OriginalDocs, invertedListDoc):
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
     scoresDocs = dict()
     for doc in docs:
@@ -327,3 +323,137 @@ def getNounFrases(text,tagger1, chunker, stopwords):
     if (len(unigrams)) != 0:
         noun_phrases = extract(unigrams, tagger1, chunker, stopwords)
     return noun_phrases
+
+#####################functions pagerank e ralacionadas do proj 2 ex2 e 3
+def createGraphCosSimilarity(docs, tfIdf1):
+    setofGraphs = dict()
+    count = 0
+    # print("tfidf", tfIdf1)
+    for doc in docs:
+        grafo = [[0 for x in range(len(tfIdf1[doc]))] for y in range(len(tfIdf1[doc]))]
+        for sentence1 in tfIdf1[doc]:
+            for sentence2 in tfIdf1[doc]:
+                numerador = sumMultiPesos(doc, sentence1, sentence2, tfIdf1)
+                # print("numerador", numerador)
+                denominador1 = sqrtSomeSquares(doc, sentence1, tfIdf1)
+                # print("denominador1", denominador1)
+                denominador2 = sqrtSomeSquares(doc, sentence2, tfIdf1)
+                # print("denominador2", denominador2)
+                aux = denominador1 * denominador2
+                if (aux != 0):
+                    similarity = numerador / (aux)
+                else:
+                    similarity = 0
+                    # print("similarity", similarity)
+                if similarity > TRESHOLD:
+                    grafo[sentence1][sentence2] = similarity
+                    # for sentence1 in tfIdf1[doc]:
+                    # aux = " "
+                    # for sentence2 in tfIdf1[doc]:
+                    #  aux+= " " + str(grafo[sentence1][sentence2])
+                    # print(aux)
+        setofGraphs[doc] = grafo
+    return setofGraphs
+
+
+def getPr0(numsentences):
+    Po = 1 / numsentences
+    probpre = dict()
+    for i in range(numsentences):
+        probpre[i] = Po
+    return probpre
+
+
+def getPr0BasedSentencePosition(numsentences):
+    Po = 1 / numsentences
+    probpre = dict()
+    som = 0
+    for i in range(numsentences):
+        som += Po * (numsentences / (i + 1))
+        probpre[i] = Po * (numsentences / (i + 1))
+
+    for i in probpre:
+        probpre[i] = probpre[i] / som
+    return probpre
+
+
+def getPr0BasedSentenceWeigth(numsentences, sentenceScore):
+    Po = 1 / numsentences
+    probpre = dict()
+    som = 0
+    for i in range(numsentences):
+        som += Po * sentenceScore[i]
+        probpre[i] = Po * sentenceScore[i]
+
+    for i in probpre:
+        probpre[i] = probpre[i] / som
+    return probpre
+
+
+def pageRank(numsentences, graph, Pr0):
+    d = 0.15
+    # probpre=getPr0(numsentences)
+    # probpre=getPr0BasedSentencePosition(numsentences)
+    probpre = Pr0
+    prior = probpre
+    probpos = dict()
+    for x in range(50):
+        for i in range(numsentences):
+            aux = somatorioPriors(prior, i, graph, numsentences)
+            v = 0
+            if (aux != 0):
+                v = prior[i] / aux
+            probpos[i] = (d * (v)) + (1 - d) * (somatorioPesos(probpre, i, graph, numsentences))
+        probpre = probpos
+    return probpos
+
+
+def somatorioPriors(prior, i, graph, numsentences):
+    value = 0
+    for j in range(numsentences):
+        if graph[i][j] > 0:
+            value += graph[i][j]
+    return value
+
+
+def somatorioPesos(probpre, i, graph, numsentences):
+    value = 0
+    for j in range(numsentences):
+        counter = 0
+        if graph[i][j] > 0:
+            for k in range(numsentences):
+                if graph[j][k] > 0:
+                    counter += graph[j][k]
+            value = value + (probpre[j] * graph[i][j] / counter)
+    return value
+
+
+def creatGrafsNounFrases(OriginalDocs, tagger1, chunker, stopwords):
+    # text is the text of the original doc
+    setofGraphs = dict()
+    count = 0
+    # print("tfidf", tfIdf1)
+    for doc in OriginalDocs:
+        text = OriginalDocs[doc]
+        text = text.lower()
+        sentences = DocToSentences(text)
+        grafo = [[0 for i in range(len(sentences))] for j in range(len(sentences))]
+        x = 0
+        y = 0
+        for sentence1 in sentences:
+            nounPhrases1 = getNounFrases(sentence1, tagger1, chunker, stopwords)
+            y = 0
+            for sentence2 in sentences:
+                nounPhrases2 = getNounFrases(sentence2, tagger1, chunker, stopwords)
+                grafo[x][y] = len(set(nounPhrases1).intersection(nounPhrases2))
+                y += 1
+            x += 1
+        setofGraphs[doc] = grafo
+    return setofGraphs
+
+
+def getPr0BasedNumTermsFrase(numsentences, numTermsDoc, numTermsSentence):
+    probpre = dict()
+    for i in range(numsentences):
+        probpre[i] = numTermsSentence[i] / numTermsDoc
+    return probpre

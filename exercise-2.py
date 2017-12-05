@@ -1,13 +1,13 @@
 import os
 from functions import *
-#from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, calc_avg_doc, saveResumes, getChunker, getTagger
+
+# from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, calc_avg_doc, saveResumes, getChunker, getTagger
 
 PATH_TEXT = './teste/'
 PATH_SOURCE_TEXT = './SourceTextWithTitle/'
 PATH_MANUAL_SUMMARIES = './ManualSummaries/'
 PATH_AUTO_IDEAL_EXTRACTIVES = './AutoIdealExtractives/'
 RESUME_LEN = 5
-TRESHOLD = 0.15
 
 
 sentInExtResumes = 0
@@ -24,163 +24,68 @@ tfIdf = dict()
 tf = dict()
 num_frases_termo = dict()
 
-
-def createGraphCosSimilarity(docs, tfIdf1):
-    setofGraphs= dict()
-    count = 0
-    #print("tfidf", tfIdf1)
-    for doc in docs:
-        grafo = [[0 for x in range(len(tfIdf1[doc]))] for y in range(len(tfIdf1[doc]))]
-        for sentence1 in tfIdf1[doc]:
-            for sentence2 in tfIdf1[doc]:
-                numerador = sumMultiPesos(doc,sentence1,sentence2,tfIdf1)
-               # print("numerador", numerador)
-                denominador1 = sqrtSomeSquares(doc,sentence1,tfIdf1)
-               # print("denominador1", denominador1)
-                denominador2 = sqrtSomeSquares(doc,sentence2,tfIdf1)
-               # print("denominador2", denominador2)
-                aux=denominador1*denominador2
-                if(aux!=0):
-                    similarity = numerador / (aux)
-                else:
-                    similarity=0
-               # print("similarity", similarity)
-                if similarity > TRESHOLD:
-                    grafo[sentence1][sentence2]=similarity
-        #for sentence1 in tfIdf1[doc]:
-            #aux = " "
-            #for sentence2 in tfIdf1[doc]:
-              #  aux+= " " + str(grafo[sentence1][sentence2])
-            #print(aux)
-        setofGraphs[doc]=grafo
-    return setofGraphs
-
-def getPr0(numsentences):
-    Po = 1/ numsentences
-    probpre=dict()
-    for i in range(numsentences):
-    	probpre[i]=Po
-    return probpre
-
-def getPr0BasedSentencePosition(numsentences):
-    Po = 1/ numsentences
-    probpre=dict()
-    som=0
-    for i in range(numsentences):
-        som+=Po*(numsentences/(i+1))
-        probpre[i]=Po*(numsentences/(i+1))
-    
-    for i in probpre:
-        probpre[i]=probpre[i]/som
-    return probpre
-
-def getPr0BasedSentenceWeigth(numsentences,sentenceScore):
-    Po = 1 / numsentences
-    probpre = dict()
-    som = 0
-    for i in range(numsentences):
-        som += Po * sentenceScore[i]
-        probpre[i] = Po * sentenceScore[i]
-
-    for i in probpre:
-        probpre[i] = probpre[i] / som
-    return probpre
-
-def pageRank(numsentences, graph ,Pr0):
-    d = 0.15
-    #probpre=getPr0(numsentences)
-    #probpre=getPr0BasedSentencePosition(numsentences)
-    probpre=Pr0
-    prior=probpre
-    probpos =dict()
-    for x in range(50):
-    	for i in range(numsentences):
-            aux=somatorioPriors(prior,i, graph, numsentences)
-            v=0
-            if(aux!=0):
-                v=prior[i]/aux
-            probpos[i] =  (d *(v)) + (1-d) * (somatorioPesos(probpre, i, graph, numsentences))
-    	probpre = probpos
-    return probpos
-
-def somatorioPriors(prior,i, graph, numsentences):
-    value = 0
-    for j in range(numsentences) :
-        if graph[i][j] > 0:
-            value+=graph[i][j]
-    return value
-
-def somatorioPesos(probpre, i, graph, numsentences):
-    value = 0
-    for j in range(numsentences) :
-        counter= 0
-        if graph[i][j] > 0:
-            for k in range(numsentences):
-                if graph[j][k] > 0:
-                    counter +=graph[j][k]
-            value =value+ (probpre[j]* graph[i][j]/ counter)
-    return value
-
-def creatGrafsNounFrases (OriginalDocs,tagger1, chunker, stopwords):
-    #text is the text of the original doc
-    setofGraphs = dict()
-    count = 0
-    # print("tfidf", tfIdf1)
-    for doc in OriginalDocs:
-        text=OriginalDocs[doc]
-        text = text.lower()
-        sentences = DocToSentences(text)
-        grafo= [[0 for i in range(len(sentences))] for j in range(len(sentences))]
-        x=0
-        y=0
-        for sentence1 in sentences:
-            nounPhrases1 = getNounFrases(sentence1,tagger1, chunker, stopwords)
-            y=0
-            for sentence2 in sentences:
-                nounPhrases2 = getNounFrases(sentence2, tagger1, chunker, stopwords)
-                grafo[x][y]=len(set(nounPhrases1).intersection(nounPhrases2))
-                y+=1
-            x+=1
-        setofGraphs[doc] = grafo
-    return setofGraphs
-
-def getPr0BasedNumTermsFrase(numsentences,numTermsDoc,numTermsSentence):
-    probpre = dict()
-    for i in range(numsentences):
-        probpre[i]=numTermsSentence[i]/numTermsDoc
-
-    return probpre
-
 def main():
     global docs
     resume1 = dict()
+    resume2 = dict()
+    resume3 = dict()
+    resume4 = dict()
+    resume5= dict()
     num_docs = len(docs)
-    mean_avg_precision = 0
+    mean_avg_precision1 = 0
+    mean_avg_precision2 = 0
+    mean_avg_precision3 = 0
+    mean_avg_precision4 = 0
+    mean_avg_precision5 = 0
     tagger1 = getTagger()
     chunker = getChunker()
-    extracted = saveResumes(resumes)
-    stopwords= getStopWords()
-    numTermsDoc=dict()
-    numTermsDocSentence=dict()
-    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords,numTermsDoc,numTermsDocSentence)
+    extracted = saveResumes(resumes, PATH_AUTO_IDEAL_EXTRACTIVES)
+    stopwords = getStopWords()
+    numTermsDoc = dict()
+    numTermsDocSentence = dict()
+    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker, stopwords, numTermsDoc, numTermsDocSentence, PATH_TEXT)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
+    setofGraphs1 =  createGraphCosSimilarity(docs, tfIdf1)
+    setofGraphs2 = creatGrafsNounFrases(OriginalDocs, tagger1, chunker, stopwords)
+    sentencesScores = getSentencesScoreDoc(docs, docSentenceTerm, invertedList, OriginalDocs, invertedListDoc, RESUME_LEN)
+    for doc, graph in setofGraphs1.items():
+        # print("doc "+str())
+        numPhrases = len(tfIdf1[doc].keys())
+        pr0=getPr0BasedSentencePosition(numPhrases)
+        pr1=getPr0(numPhrases)
+        pr2 = getPr0BasedNumTermsFrase(numPhrases, numTermsDoc[doc], numTermsDocSentence[doc])
+        pr3=getPr0BasedSentenceWeigth(numPhrases,sentencesScores[doc])
+        pagescore11 = pageRank(numPhrases, setofGraphs1[doc], pr0)
+       # pagescore12 = pageRank(numPhrases, setofGraphs2[doc], pr0)
+        pagescore21 = pageRank(numPhrases, setofGraphs1[doc], pr1)
+        pagescore22 = pageRank(numPhrases, setofGraphs2[doc], pr1)
+        pagescore31 = pageRank(numPhrases, setofGraphs1[doc], pr2)
+        resume1[doc] = getOriginalSentence(doc, getFiveBest(pagescore11, RESUME_LEN), OriginalDocs)
+       # resume2[doc] = getOriginalSentence(doc, getFiveBest(pagescore12, RESUME_LEN), OriginalDocs)
+        resume3[doc] = getOriginalSentence(doc, getFiveBest(pagescore21, RESUME_LEN), OriginalDocs)
+        #resume4[doc] = getOriginalSentence(doc, getFiveBest(pagescore22, RESUME_LEN), OriginalDocs)
+        resume5[doc] = getOriginalSentence(doc, getFiveBest(pagescore31, RESUME_LEN), OriginalDocs)
+        mean_avg_precision1 += calc_avg_doc(resume1[doc], extracted[doc])
+       # mean_avg_precision2 += calc_avg_doc(resume2[doc], extracted[doc])
+        mean_avg_precision3 += calc_avg_doc(resume3[doc], extracted[doc])
+      #  mean_avg_precision4 += calc_avg_doc(resume4[doc], extracted[doc])
+        mean_avg_precision5 += calc_avg_doc(resume5[doc], extracted[doc])
 
-    #setofGraphs =  createGraphCosSimilarity(docs, tfIdf1)
-    setofGraphs=creatGrafsNounFrases(OriginalDocs,tagger1, chunker, stopwords)
 
-    sentencesScores=getSentencesScoreDoc(docs, docSentenceTerm, invertedList, OriginalDocs, invertedListDoc, RESUME_LEN)
-    for doc,graph in setofGraphs.items():
-        #print("doc "+str())
-        numPhrases=len(tfIdf1[doc].keys())
-        #pr0=getPr0BasedSentencePosition(numsentences)
-        #pr0=getPr0(numPhrases)
-        pr0=getPr0BasedNumTermsFrase(numPhrases,numTermsDoc[doc],numTermsDocSentence[doc])
-        #pr0=getPr0BasedSentenceWeigth(numPhrases,sentencesScores[doc])
-        pagescore = pageRank(numPhrases, graph,pr0)
-        resume1[doc] = getOriginalSentence(doc,getFiveBest(pagescore, RESUME_LEN),OriginalDocs)
-        mean_avg_precision += calc_avg_doc(resume1[doc], extracted[doc])
-    mean_avg_precision = mean_avg_precision/ num_docs
-    print("MAP : " + str(mean_avg_precision))
+    mean_avg_precision1 = mean_avg_precision1 / num_docs
+    #mean_avg_precision2 = mean_avg_precision2 / num_docs
+    mean_avg_precision3 = mean_avg_precision3 / num_docs
+   # mean_avg_precision4 = mean_avg_precision4 / num_docs
+
+    print("Non-uniform prior weights based on the cosine similarity towards the entire document,leverating either TF-IDF")
+    print("MAP1: " + str(mean_avg_precision1))
+   # print("MAP2 : " + str(mean_avg_precision2))
+    print("Non-uniform prior weights with basis on the position of the sentence in the document")
+    print("MAP3 : " + str(mean_avg_precision3))
+   # print("Non-uniform prior weights with basis on the position of the sentence in the document + Noun Phrases Graph")
+   # print("MAP4 : " + str(mean_avg_precision4))
+    print("Edge weights based on the number of sentences terms")
+    print("MAP5 : " + str(mean_avg_precision5))
 
 main()
 
