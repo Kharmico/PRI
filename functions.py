@@ -5,7 +5,6 @@ from nltk.corpus import stopwords
 from nltk import ngrams
 from nltk.corpus import floresta
 
-
 #Python understands the common character encoding used for Portuguese, ISO 8859-1 (ISO Latin 1).
 ENCODING='iso8859-1/latin1'
 TRESHOLD = 0.15
@@ -457,3 +456,43 @@ def getPr0BasedNumTermsFrase(numsentences, numTermsDoc, numTermsSentence):
     for i in range(numsentences):
         probpre[i] = numTermsSentence[i] / numTermsDoc
     return probpre
+
+def getResumeIndexes(doc,docName,resume_path):
+    docName="sum-"+docName
+    f2 = open(resume_path + docName, "r")
+    resume=f2.read().lower()
+    resume_sentences=DocToSentences(resume)
+    doc_sentences= DocToSentences(doc.lower())
+    i=0
+    for sentence in resume_sentences:
+        resume_sentences[i]= sentence.rstrip()
+        i+=1
+
+
+
+    i=0
+    print("doc")
+    for sentence in doc_sentences:
+        print(i,sentence)
+        print()
+        i+=1
+    print("resume")
+    i=0
+    for sentence in resume_sentences:
+        print(i,sentence.rstrip())
+        print()
+        i+=1
+    aux = []
+    counter=0
+    num_sentence=0
+
+    for sentence1 in doc_sentences:
+        print()
+        for sentence2 in resume_sentences:
+            if (sentence1.replace("\n","").replace(".","") == sentence2.replace("\n","").replace(".","")):
+                aux.append(num_sentence)
+                counter+=1
+                break
+        num_sentence+=1
+    return aux
+
