@@ -21,24 +21,24 @@ from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score
 ##############################
 iris = datasets.load_iris()
-x=iris.data
-y=iris.target
+data=iris.data
+target=iris.target
 ############################
 test_size=0.3
 random_state=0
-x_train,x_test,y_train,y_test =train_test_split(x,y,test_size=test_size,random_state=random_state)
+data_train,data_test,target_train,target_test =train_test_split(data,target,test_size=test_size,random_state=random_state)
 ################
 sc=StandardScaler()
-sc.fit(x_train)
+sc.fit(data_train)
 
-x_train_std=sc.transform(x_train)
-x_test_std=sc.transform(x_test)
+data_train=sc.transform(data_train)
+data_test=sc.transform(data_test)
 
 #####
-print("unique labels: {0}".format(np.unique(y)))
+print("unique labels: {0}".format(np.unique(target)))
 
-x_train_std=x_train_std[:,[2,3]]
-x_test_std=x_test_std[:,[2,3]]
+data_train=data_train[:,[2,3]]
+data_test=data_test[:,[2,3]]
 
 n_iter=40
 eta0=0.1
@@ -48,10 +48,20 @@ eta0=0.1
 ppn=Perceptron(n_iter=n_iter,eta0=eta0,random_state=random_state)
 
 #fit the model to the standardized data
+print("data train")
+print(data_train)
+print("\n\n\n")
 
-ppn.fit(x_train_std,y_train)
+print("target train")
+print(target_train)
+
+counter=0
+for i in data_train:
+    print(i,target_train[counter])
+    counter+=1
+ppn.fit(data_train,target_train)
 
 #make predictions
-y_pred=ppn.predict(x_test_std)
+target_pred=ppn.predict(data_test)
 
-print("accuracy: {0:.2f}%".format(accuracy_score(y_test,y_pred)*100))
+print("accuracy: {0:.2f}%".format(accuracy_score(target_test,target_pred)*100))
