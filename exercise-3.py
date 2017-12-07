@@ -93,7 +93,7 @@ def main():
             feature_sentence.append(scores[i])
             feature_sentence.append(trainNumTermFrase[i])
             trainFeatures.append(feature_sentence)
-        print(trainFeatures)
+        #print(trainFeatures)
 
     sc = StandardScaler()
     sc.fit(trainFeatures)
