@@ -139,10 +139,26 @@ def getFqMaxDoc(doc, invertedListDoc):
 
 def getFiveBest(sentences_scores, resumelen):
     five_best=[]
+
     for x in range(0,resumelen):
         maxSent=max(sentences_scores.keys(), key=(lambda key: sentences_scores[key]))
         five_best.append(maxSent)
         del sentences_scores[maxSent]
+    five_best.sort()
+    return five_best
+
+def getFiveBestConfidences(scores, resumelen):
+    five_best=[]
+    _scores=[]
+    for v in scores:
+        _scores.append(v)
+    aux = [v for v in _scores]
+    for x in range(0,resumelen):
+        m=max(aux)
+        maxSent=_scores.index(m)
+        i=aux.index(m)
+        five_best.append(maxSent)
+        del aux[i]
     five_best.sort()
     return five_best
 
@@ -457,37 +473,24 @@ def getPr0BasedNumTermsFrase(numsentences, numTermsDoc, numTermsSentence):
         probpre[i] = numTermsSentence[i] / numTermsDoc
     return probpre
 
+def getFeatureNumTermsFrase(numsentences, numTermsDoc, numTermsSentence):
+    probpre = []
+    for i in range(numsentences):
+        probpre.append(numTermsSentence[i] / numTermsDoc)
+    return probpre
+
 def getResumeIndexes(doc,docName,resume_path):
     docName="sum-"+docName
     f2 = open(resume_path + docName, "r")
     resume=f2.read().lower()
     resume_sentences=DocToSentences(resume)
     doc_sentences= DocToSentences(doc.lower())
-    i=0
-    for sentence in resume_sentences:
-        resume_sentences[i]= sentence.rstrip()
-        i+=1
-
-
-
-    i=0
-    print("doc")
-    for sentence in doc_sentences:
-        print(i,sentence)
-        print()
-        i+=1
-    print("resume")
-    i=0
-    for sentence in resume_sentences:
-        print(i,sentence.rstrip())
-        print()
-        i+=1
     aux = []
     counter=0
     num_sentence=0
 
     for sentence1 in doc_sentences:
-        print()
+
         for sentence2 in resume_sentences:
             if (sentence1.replace("\n","").replace(".","") == sentence2.replace("\n","").replace(".","")):
                 aux.append(num_sentence)
@@ -496,3 +499,12 @@ def getResumeIndexes(doc,docName,resume_path):
         num_sentence+=1
     return aux
 
+def normalize(array):
+    sum=0
+    counter=0
+    aux=[]
+    for v in array:
+        sum+=v
+    for v in array:
+        aux.append(v/sum)
+    return aux
