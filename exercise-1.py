@@ -1,5 +1,5 @@
 import os
-from functions import printBest, sqrtSomeSquares,  getResume, sumMultiPesos, setTfIdf, setInvertedList, getChunker, getTagger
+from functions import *
 
 
 PATH_TEXT = './teste/'
@@ -46,11 +46,11 @@ def createGraph(docs,tfIdf1):
                # print("similarity", similarity)
                 if similarity > TRESHOLD :
                     grafo[sentence1-1][sentence2-1]=similarity
-        for sentence1 in tfIdf1[doc]:
-            aux = " "
-            for sentence2 in tfIdf1[doc]:
-                aux+= " " + str(grafo[sentence1 - 1][sentence2 - 1])
-            print(aux)
+        #for sentence1 in tfIdf1[doc]:
+         #   aux = " "
+          #  for sentence2 in tfIdf1[doc]:
+           #     aux+= " " + str(grafo[sentence1 - 1][sentence2 - 1])
+           # print(aux)
         setofGraphs[doc]=grafo
     return setofGraphs
 
@@ -89,14 +89,21 @@ def main():
     resume1 = dict()
     tagger1 = getTagger()
     chunker = getChunker()
-    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker)
+
+    numTermsDoc = dict()
+    numTermsDocSentence = dict()
+    stopwords = getStopWords()
+    setInvertedList(docs, OriginalDocs, invertedListDoc, docSentenceTerm, invertedList, tagger1, chunker,stopwords,numTermsDoc, numTermsDocSentence, PATH_TEXT)
     tfIdf1 = setTfIdf(docSentenceTerm, invertedList, OriginalDocs)
     setofGraphs =  createGraph(docs,tfIdf1)
     for doc,graph in setofGraphs.items():
         numPhrases=len(tfIdf1[doc].keys())
         pagescore = pageRank(numPhrases, graph)
-        resume1[doc]= getResume(pagescore, 5)
-        #printBest(doc, resume1, OriginalDocs)
+        resume1= getOriginalSentence(doc,getFiveBest(pagescore, RESUME_LEN),OriginalDocs)
+        for s in resume1:
+            print(s)
+        print()
+
 
 
 main()
