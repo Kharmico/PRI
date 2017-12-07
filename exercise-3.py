@@ -120,7 +120,6 @@ def main():
             featureDoc.append(feature_sentence)
         featureDoc = sc.transform(featureDoc)
         testFeatures[doc]=featureDoc
-    print(testFeatures)
     ########################################################################################################
     # train
     ################
@@ -131,7 +130,6 @@ def main():
     ppn = Perceptron(n_iter=n_iter, eta0=eta0, random_state=random_state)
     ppn.fit(trainFeatures, trainTarget)
     #test
-    print("predictions")
     mean_avg_precision1=0
     extracted = saveResumes(resumes, PATH_TEST_RESUMES)
     mean_avg_precision=0
@@ -139,7 +137,6 @@ def main():
         #print("doc")
         test=sc.transform(testFeatures[doc])
         confidence=ppn.decision_function(test)
-        print(confidence)
         resume = getOriginalSentence(doc, getFiveBestConfidences(confidence, RESUME_LEN), originalDocs)
 
         #for i in resume:
