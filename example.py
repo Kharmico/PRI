@@ -54,7 +54,7 @@ print("\n\n\n")
 
 print("target train")
 print(target_train)
-
+print("\n\n\n")
 counter=0
 for i in data_train:
     print(i,target_train[counter])
@@ -62,6 +62,8 @@ for i in data_train:
 ppn.fit(data_train,target_train)
 
 #make predictions
+print("data test")
+print(data_test)
 target_pred=ppn.predict(data_test)
 
 print("accuracy: {0:.2f}%".format(accuracy_score(target_test,target_pred)*100))
